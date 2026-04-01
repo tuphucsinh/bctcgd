@@ -8,8 +8,7 @@ import {
   CreditCard, 
   Wallet, 
   PieChart, 
-  ArrowUpRight,
-  ChevronDown
+  ArrowUpRight
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -23,46 +22,37 @@ const users = [
 
 export default function Home() {
   const [currentUser, setCurrentUser] = useState(users[0]);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   return (
     <main className="flex-1 overflow-y-auto bg-background p-4 md:p-8">
       {/* Header bar with user switcher */}
       <header className="mb-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Tổng quan</h1>
-          <p className="text-muted-foreground">Xin chào, {currentUser.name}! Báo cáo tài chính tháng 4/2026.</p>
-        </div>
+        <div />
 
         <div className="flex items-center gap-2">
-          {/* User Switcher Dropdown */}
-          <div className="relative">
-            <button 
-              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center gap-2 rounded-full border border-border/50 bg-card/50 px-4 py-2 text-sm transition-all hover:bg-accent backdrop-blur-md"
-            >
-              <div className={cn("h-4 w-4 rounded-full", currentUser.color)} />
-              <span className="font-medium text-foreground">{currentUser.name}</span>
-              <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isUserMenuOpen && "rotate-180")} />
-            </button>
-            
-            {isUserMenuOpen && (
-              <div className="absolute right-0 top-full z-10 mt-2 min-w-[160px] overflow-hidden rounded-2xl border border-border/50 bg-card/80 backdrop-blur-xl shadow-2xl">
-                {users.map((user) => (
-                  <button
-                    key={user.id}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent transition-colors"
-                    onClick={() => {
-                      setCurrentUser(user);
-                      setIsUserMenuOpen(false);
-                    }}
-                  >
-                    <div className={cn("h-3 w-3 rounded-full", user.color)} />
-                    <span className="text-sm font-medium">{user.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+          {/* User Switcher Toggle */}
+          <div className="flex items-center gap-1 rounded-full border border-border/50 bg-card/30 p-1 backdrop-blur-md">
+            {users.slice(0, 2).map((user) => (
+              <button
+                key={user.id}
+                onClick={() => setCurrentUser(user)}
+                className={cn(
+                  "flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300",
+                  currentUser.id === user.id
+                    ? "bg-accent text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground/80 opacity-60"
+                )}
+              >
+                <div 
+                  className={cn(
+                    "h-2.5 w-2.5 rounded-full transition-all duration-300", 
+                    user.color,
+                    currentUser.id !== user.id && "scale-75 opacity-50"
+                  )} 
+                />
+                {user.name}
+              </button>
+            ))}
           </div>
           
           {/* Main Action Button -> Opens Transaction Modal */}

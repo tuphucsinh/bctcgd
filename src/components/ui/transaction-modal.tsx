@@ -10,11 +10,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowDownCircle, ArrowUpCircle, Plus, Calendar, Tag } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+// import { supabase } from "@/lib/supabase";
 
 export function TransactionModal({
   children,
@@ -66,7 +66,7 @@ export function TransactionModal({
       setOpen(false);
       setAmount("");
       setNote("");
-    } catch (error) {
+    } catch {
       toast.error("Lỗi khi lưu giao dịch.");
     } finally {
       setLoading(false);
@@ -75,13 +75,7 @@ export function TransactionModal({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <div className="cursor-pointer inline-block w-full h-full">
-            {children}
-          </div>
-        }
-      />
+      <DialogTrigger render={children as React.ReactElement} />
       <DialogContent className="sm:max-w-[425px] bg-background/90 backdrop-blur-xl border-border/50 shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-semibold tracking-tight">Ghi chép Giao dịch</DialogTitle>
@@ -94,7 +88,7 @@ export function TransactionModal({
           defaultValue="EXPENSE" 
           className="w-full mt-2"
           onValueChange={(v) => {
-            setType(v as any);
+            setType(v as "EXPENSE" | "INCOME");
             setSelectedCat(v === "EXPENSE" ? "Ăn uống" : "Lương");
           }}
         >

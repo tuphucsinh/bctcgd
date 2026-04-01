@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowDownCircle, ArrowUpCircle, Plus, Calendar, Tag } from "lucide-react";
-// import { supabase } from "@/lib/supabase";
+import { addTransaction, getCategories } from "@/lib/actions";
 
 export function TransactionModal({
   children,
@@ -28,14 +28,22 @@ export function TransactionModal({
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [type, setType] = useState<"EXPENSE" | "INCOME">("EXPENSE");
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
 
-  // In real app, fetch from Supabase `categories` table. Hardcoding for UI demo
-  const categories =
-    type === "EXPENSE"
-      ? ["Ăn uống", "Di chuyển", "Hoá đơn", "Sức khoẻ", "Giải trí", "Khác"]
-      : ["Lương", "Thưởng", "Kinh doanh", "Cổ tức", "Khác"];
-      
-  const [selectedCat, setSelectedCat] = useState(categories[0]);
+  useEffect(() => {
+    async function loadCats() {
+      try {
+        const data = await getCategories();
+        setCategories(data);
+      } catch (err) {
+        console.error("Failed to load categories", err);
+      }
+    }
+    loadCats();
+  }, []);
+
+  const filteredCategories = categories.filter(c => c.type === type);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,27 +54,26 @@ export function TransactionModal({
 
     setLoading(true);
     try {
-      // Demo logic: This is where you would insert into Supabase
-      // await supabase.from('transactions').insert({
-      //   amount: Number(amount),
-      //   type: type,
-      //   owner: currentUser.id.toUpperCase(),
-      //   note: note,
-      //   category_name: selectedCat, // Demo simplified (should use UUID)
-      // });
-      
-      // Artificial delay to show loading state seamlessly
-      await new Promise(r => setTimeout(r, 600)); 
+      await addTransaction({
+        amount: Number(amount),
+        type: type as any,
+        user_id: currentUser.id,
+        note: note,
+        category_id: selectedCatId || undefined
+      });
 
       toast.success(
         `Đã ghi nhận ${type === "EXPENSE" ? "Khoản Chi" : "Thu Nhập"}!`,
-        { description: `${Number(amount).toLocaleString()}k - ${selectedCat} bởi ${currentUser.name}` }
+        { description: `${Number(amount).toLocaleString()}k bởi ${currentUser.name}` }
       );
       
       setOpen(false);
       setAmount("");
       setNote("");
-    } catch {
+      // Refresh page to show new data
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
       toast.error("Lỗi khi lưu giao dịch.");
     } finally {
       setLoading(false);
@@ -89,7 +96,7 @@ export function TransactionModal({
           className="w-full mt-2"
           onValueChange={(v) => {
             setType(v as "EXPENSE" | "INCOME");
-            setSelectedCat(v === "EXPENSE" ? "Ăn uống" : "Lương");
+            setSelectedCatId(null);
           }}
         >
           <TabsList className="grid w-full grid-cols-2 p-1 bg-muted/50">
@@ -125,21 +132,21 @@ export function TransactionModal({
             <Label className="text-muted-foreground text-xs font-medium uppercase tracking-wider flex items-center gap-1">
               <Tag className="w-3 h-3"/> Hạng mục
             </Label>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => (
+            <div className="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto pr-2">
+              {filteredCategories.map((cat) => (
                 <button
-                  key={cat}
+                  key={cat.id}
                   type="button"
-                  onClick={() => setSelectedCat(cat)}
-                  className={`px-4 py-2 text-sm font-medium rounded-xl transition-all border ${
-                    selectedCat === cat 
+                  onClick={() => setSelectedCatId(cat.id)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-xl transition-all border ${
+                    selectedCatId === cat.id 
                       ? type === "EXPENSE"
                         ? "bg-orange-500/10 border-orange-500/50 text-orange-400" 
                         : "bg-emerald-500/10 border-emerald-500/50 text-emerald-400"
                       : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50"
                   }`}
                 >
-                  {cat}
+                  {cat.name}
                 </button>
               ))}
             </div>

@@ -75,7 +75,9 @@ export function TransactionModal({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>
+        <div className="cursor-pointer inline-block w-full h-full">{children}</div>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] bg-background/90 backdrop-blur-xl border-border/50 shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-semibold tracking-tight">Ghi chép Giao dịch</DialogTitle>

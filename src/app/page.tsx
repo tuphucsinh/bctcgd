@@ -195,14 +195,17 @@ function Dashboard() {
   const realExpense = data?.monthlySpending ?? 0;
   
   // Dùng dữ liệu thật nếu có, không thì dùng mẫu để demo
-  const income = realIncome > 0 ? realIncome : (trendData.length === 0 ? 15500000 : 0);
-  // Force giá trị cao (>90%) để anh xem hiệu ứng Red Glow cảnh báo
+  const income = realIncome > 0 ? realIncome : (trendData.length === 0 ? 11000000 : 0);
   const expense = realExpense > 0 ? realExpense : (trendData.length === 0 ? 11500000 : 0); 
   const cash = (data?.totalAssets ?? 0) > 0 ? (data?.totalAssets ?? 0) : (trendData.length === 0 ? 45000000 : 0);
 
   const totalFlow = income + expense;
   const incomePercent = totalFlow > 0 ? (income / totalFlow) * 100 : 0;
   const expensePercent = totalFlow > 0 ? (expense / totalFlow) * 100 : 0;
+
+  // Tính tỷ lệ tiết kiệm
+  const savingsRate = income > 0 ? ((income - expense) / income) * 100 : 0;
+  const isDeficit = expense > income;
 
   return (
     <main className="w-full bg-background p-4 md:p-6 md:px-8 max-w-7xl mx-auto space-y-6 md:space-y-8 pb-20">
@@ -405,8 +408,8 @@ function Dashboard() {
                   }}
                   transition={{
                     width: { duration: 0.8 },
-                    opacity: isOver90 ? { repeat: Infinity, duration: 3, ease: "easeInOut" } : {},
-                    scaleY: isOver90 ? { repeat: Infinity, duration: 3, ease: "easeInOut" } : {}
+                    opacity: isOver90 ? { repeat: Infinity, duration: 4, ease: "easeInOut" } : {},
+                    scaleY: isOver90 ? { repeat: Infinity, duration: 4, ease: "easeInOut" } : {}
                   }}
                   className={cn("h-full origin-bottom transition-colors duration-500", color)}
                 />
@@ -419,53 +422,81 @@ function Dashboard() {
       {/* Comparison Bars (Thu nhập vs Chi tiêu) */}
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-        className="rounded-3xl border border-white/5 bg-card/40 p-5 backdrop-blur-md shadow-lg"
+        animate={{ 
+          opacity: 1, 
+          y: 0,
+          boxShadow: isDeficit 
+            ? "0 10px 40px rgba(249,115,22,0.25)" 
+            : "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+          borderColor: isDeficit 
+            ? "rgba(249,115,22,0.3)" 
+            : "rgba(255,255,255,0.05)"
+        }}
+        transition={{ 
+          opacity: { duration: 0.5, delay: 0.35 },
+          y: { duration: 0.5, delay: 0.35 },
+          boxShadow: { duration: 0.3 },
+          borderColor: { duration: 0.3 }
+        }}
+        className={cn(
+          "relative rounded-3xl border bg-card/40 p-5 backdrop-blur-md transition-all duration-300",
+          isDeficit ? "border-orange-500/30 shadow-none" : "border-white/5"
+        )}
       >
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-muted-foreground" />
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Tỷ lệ Thu nhập / Chi tiêu</span>
-          </div>
-          <div className={cn(
-            "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter",
-            income >= expense ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
-          )}>
-            {income >= expense ? "Thặng dư" : "Thâm hụt"}
-          </div>
+        {/* Savings Rate Badge */}
+        <div className="absolute top-4 right-5">
+           <motion.div 
+             className={cn(
+               "px-2 py-0.5 rounded-full text-[9px] font-bold tracking-tight border backdrop-blur-md",
+               savingsRate >= 0 
+                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                 : "bg-orange-500/10 text-orange-400 border-orange-500/20"
+             )}
+           >
+             {savingsRate >= 0 ? `TIẾT KIỆM: ${savingsRate.toFixed(0)}%` : `THÂM HỤT: ${Math.abs(savingsRate).toFixed(0)}%`}
+           </motion.div>
         </div>
-        
+
         <div className="space-y-4">
           {/* Income Bar */}
           <div className="space-y-1.5">
-            <div className="flex justify-between items-end px-1">
-              <span className="text-[10px] font-medium text-muted-foreground">THU NHẬP</span>
-              <span className="text-xs font-bold text-emerald-400">{formatMoney(income)} ({incomePercent.toFixed(0)}%)</span>
+            <div className="flex items-baseline gap-3 px-1">
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest whitespace-nowrap">Thu nhập</span>
+              <span className="text-xs font-bold text-emerald-400">{formatMoney(income)}</span>
             </div>
             <div className="h-2 w-full bg-emerald-500/10 rounded-full overflow-hidden">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${incomePercent}%` }}
-                transition={{ duration: 1, delay: 0.5 }}
-                className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
-              />
+               <motion.div 
+                 initial={{ width: 0 }}
+                 animate={{ 
+                   width: `${incomePercent}%`,
+                 }}
+                 transition={{ 
+                   width: { duration: 1, delay: 0.5 },
+                 }}
+                 className="h-full origin-bottom bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+               />
             </div>
           </div>
 
           {/* Expense Bar */}
           <div className="space-y-1.5">
-            <div className="flex justify-between items-end px-1">
-              <span className="text-[10px] font-medium text-muted-foreground">CHI TIÊU</span>
-              <span className="text-xs font-bold text-orange-400">{formatMoney(expense)} ({expensePercent.toFixed(0)}%)</span>
+            <div className="flex items-baseline gap-3 px-1">
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest whitespace-nowrap">Chi tiêu</span>
+              <span className={cn("text-xs font-bold", isDeficit ? "text-orange-500" : "text-orange-400")}>
+                {formatMoney(expense)}
+              </span>
             </div>
             <div className="h-2 w-full bg-orange-500/10 rounded-full overflow-hidden">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${expensePercent}%` }}
-                transition={{ duration: 1, delay: 0.7 }}
-                className="h-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.3)]"
-              />
+               <motion.div 
+                 initial={{ width: 0 }}
+                 animate={{ 
+                   width: `${expensePercent}%`,
+                 }}
+                 transition={{ 
+                   width: { duration: 1, delay: 0.7 },
+                 }}
+                 className="h-full origin-bottom bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.3)]"
+               />
             </div>
           </div>
         </div>

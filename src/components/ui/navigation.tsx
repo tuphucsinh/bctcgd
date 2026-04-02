@@ -14,7 +14,7 @@ import { motion } from "framer-motion";
 
 
 const navItems = [
-  { name: "Tổng quan", href: "/", icon: Home },
+  { name: "Home", href: "/", icon: Home },
   { name: "Tài sản", href: "/assets", icon: Wallet },
   { name: "Nợ", href: "/debts", icon: CreditCard },
   { name: "Báo cáo", href: "/reports", icon: BarChart3 },
@@ -27,7 +27,7 @@ export function Navigation() {
   return (
     <>
       {/* Mobile Bottom Navigation (Floating Pill Island) */}
-      <nav className="fixed bottom-[calc(env(safe-area-inset-bottom)+8px)] left-4 right-4 z-50 flex items-center justify-around rounded-full border border-white/10 bg-[#0a0a0a]/60 p-2 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] md:hidden">
+      <nav className="fixed bottom-[calc(env(safe-area-inset-bottom)+8px)] left-4 right-4 z-50 flex items-center justify-around rounded-full border border-white/10 bg-[#0a0a0a]/60 p-1.5 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] md:hidden">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
@@ -36,7 +36,7 @@ export function Navigation() {
               key={item.name}
               href={item.href}
               className={cn(
-                "relative flex flex-col items-center justify-center p-2 text-[10px] font-medium transition-colors duration-300 rounded-full w-16",
+                "relative flex flex-col items-center justify-center py-1 px-2 text-[10px] font-medium transition-colors duration-300 rounded-full w-16",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground/80"
               )}
             >

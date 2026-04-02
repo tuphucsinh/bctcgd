@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { 
   Plus, 
@@ -22,13 +22,13 @@ const users = [
   { id: "joint", name: "Gia đình", color: "bg-indigo-500" }
 ];
 
-export default function Home() {
+function Dashboard() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const userId = searchParams.get("user") || "hieu";
   
   const [currentUser, setCurrentUser] = useState(users.find(u => u.id === userId) || users[0]);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<Awaited<ReturnType<typeof getFinancialSummary>> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -108,11 +108,11 @@ export default function Home() {
           <div className="relative z-10 mt-8 md:mt-4">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest opacity-70">Tài sản ròng</p>
             <h2 className="mt-1 text-3xl font-extrabold tracking-tight md:text-4xl lg:text-5xl bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
-              {loading ? "---" : formatMoney(data?.netWorth || 0)}
+              {loading ? "---" : formatMoney(data?.netWorth ?? 0)}
             </h2>
             <div className="mt-3">
               <span className="inline-flex items-center rounded-lg bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary border border-primary/20">
-                {data?.cashFlow >= 0 ? "+" : ""}{formatMoney(data?.cashFlow || 0)} tháng này
+                {(data?.cashFlow ?? 0) >= 0 ? "+" : ""}{formatMoney(data?.cashFlow ?? 0)} tháng này
               </span>
             </div>
           </div>
@@ -130,7 +130,7 @@ export default function Home() {
           </div>
           <div className="mt-3">
             <div className="text-xl lg:text-2xl font-bold italic tracking-tight">
-              {loading ? "---" : formatMoney(data?.monthlySpending || 0)}
+              {loading ? "---" : formatMoney(data?.monthlySpending ?? 0)}
             </div>
           </div>
         </motion.div>
@@ -147,7 +147,7 @@ export default function Home() {
           </div>
           <div className="mt-3">
             <div className="text-xl lg:text-2xl font-bold tracking-tight">
-              {loading ? "---" : formatMoney(data?.monthlyIncome || 0)}
+              {loading ? "---" : formatMoney(data?.monthlyIncome ?? 0)}
             </div>
           </div>
         </motion.div>
@@ -171,7 +171,7 @@ export default function Home() {
              <PieChart className="h-3.5 w-3.5" /> Phân bổ tài sản
           </h3>
           <div className="text-2xl font-bold tracking-tighter">
-            {loading ? "---" : formatMoney(data?.totalAssets || 0)}
+            {loading ? "---" : formatMoney(data?.totalAssets ?? 0)}
           </div>
           <p className="mt-1 text-[10px] text-muted-foreground">Tổng giá trị các danh mục</p>
         </motion.div>
@@ -187,10 +187,18 @@ export default function Home() {
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Dư nợ</span>
           </div>
           <div className="mt-3 text-xl lg:text-2xl font-bold tracking-tight">
-            {loading ? "---" : formatMoney(data?.totalDebts || 0)}
+            {loading ? "---" : formatMoney(data?.totalDebts ?? 0)}
           </div>
         </motion.div>
       </div>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-background text-muted-foreground">Đang tải Dashboard...</div>}>
+      <Dashboard />
+    </Suspense>
   );
 }

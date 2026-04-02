@@ -95,7 +95,7 @@ export function TransactionModal({
       await addTransaction({
         amount: numericAmount,
         type: type,
-        owner: activeUser.id,
+        user_id: activeUser.id,
         note: note || `Ghi chép ${type === 'INCOME' ? 'thu nhập' : 'chi tiêu'}`,
         category_id: selectedCatId || undefined
       });

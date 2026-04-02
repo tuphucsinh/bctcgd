@@ -66,12 +66,17 @@ export function Navigation() {
       </nav>
 
       {/* Desktop Side Panel */}
-      <aside className="hidden w-24 flex-col items-center border-r border-border/10 bg-card/30 py-8 backdrop-blur-xl md:flex h-screen sticky top-0 shrink-0">
-        <div className="mb-10 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/50 shadow-lg shadow-primary/20">
-          <div className="h-6 w-6 rounded-full border-2 border-white/80 bg-white/20 backdrop-blur-sm" />
+      <aside className="hidden h-screen sticky top-0 shrink-0 border-r border-border/10 bg-card/30 backdrop-blur-xl md:flex w-64 flex-col p-6 transition-all duration-300">
+        <div className="mb-8 flex items-center gap-3 px-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/60 shadow-lg shadow-primary/20">
+            <div className="h-5 w-5 rounded-full border-2 border-white/80 bg-white/20 backdrop-blur-sm" />
+          </div>
+          <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            BCTCGD
+          </span>
         </div>
         
-        <nav className="flex w-full flex-1 flex-col items-center gap-6">
+        <nav className="flex w-full flex-1 flex-col gap-2">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
@@ -81,35 +86,47 @@ export function Navigation() {
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  "group relative flex w-full flex-col items-center justify-center gap-1.5 p-3 text-xs font-medium transition-all duration-300 hover:text-foreground",
-                  isActive ? "text-primary" : "text-muted-foreground opacity-60 hover:opacity-100"
+                  "group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300",
+                  isActive 
+                    ? "bg-primary/10 text-primary" 
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                 )}
               >
-                <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-transparent transition-all duration-300">
-                  <Icon className={cn("relative z-10 h-5 w-5 transition-transform duration-300 group-hover:scale-110")} />
-                  {isActive && (
-                    <motion.div
-                      layoutId="bubble-desktop"
-                      className="absolute inset-0 z-0 rounded-xl bg-primary/10"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                </div>
-                <span className={cn("transition-all duration-300", isActive ? "font-bold" : "")}>
-                  {item.name}
-                </span>
+                <Icon className={cn(
+                  "h-5 w-5 transition-transform duration-300 group-hover:scale-110",
+                  isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100"
+                )} />
+                <span className="flex-1">{item.name}</span>
                 
                 {isActive && (
                   <motion.div
-                    layoutId="indicator-desktop"
-                    className="absolute -right-[1px] top-1/4 h-1/2 w-1 rounded-l-full bg-primary"
+                    layoutId="active-pill-desktop"
+                    className="absolute -left-1 h-6 w-1 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.8)]"
                     transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                   />
+                )}
+                
+                {isActive && (
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                 )}
               </Link>
             );
           })}
         </nav>
+
+        <div className="mt-auto border-t border-border/10 pt-6 px-2">
+          <div className="flex items-center gap-3 rounded-2xl bg-muted/30 p-3 ring-1 ring-border/5 transition-all hover:bg-muted/50 cursor-pointer group">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-orange-400 to-rose-400 p-[2px] transition-transform group-hover:scale-105">
+              <div className="h-full w-full rounded-[10px] bg-background flex items-center justify-center font-bold text-xs">
+                HL
+              </div>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold">Hiếu & Ly</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">Pro Account</span>
+            </div>
+          </div>
+        </div>
       </aside>
     </>
   );

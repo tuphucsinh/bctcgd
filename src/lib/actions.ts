@@ -120,3 +120,71 @@ export async function getCategories() {
   if (error) throw error;
   return data;
 }
+
+// === API FOR ASSETS ===
+export async function getAssets() {
+  const { data, error } = await supabase
+    .from('assets')
+    .select('*')
+    .eq('status', 'ACTIVE')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export type AssetInput = {
+  name: string;
+  type: 'CASH' | 'BANK' | 'SAVINGS' | 'INVESTMENT';
+  current_value: number;
+  owner?: 'HIEU' | 'LY' | 'JOINT';
+  icon?: string;
+  color?: string;
+  bank_name?: string;
+};
+
+export async function createAsset(input: AssetInput) {
+  const { data, error } = await supabase
+    .from('assets')
+    .insert([{
+      ...input,
+      owner: input.owner || 'JOINT',
+      status: 'ACTIVE'
+    }])
+    .select();
+  if (error) throw error;
+  return data;
+}
+
+// === API FOR DEBTS ===
+export async function getDebts() {
+  const { data, error } = await supabase
+    .from('debts')
+    .select('*')
+    .eq('status', 'ACTIVE')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export type DebtInput = {
+  name: string;
+  debtor_creditor: string;
+  type: 'PAYABLE' | 'RECEIVABLE';
+  original_principal: number;
+  remaining_principal: number;
+  start_date: string;
+  owner?: 'HIEU' | 'LY' | 'JOINT';
+};
+
+export async function createDebt(input: DebtInput) {
+  const { data, error } = await supabase
+    .from('debts')
+    .insert([{
+      ...input,
+      owner: input.owner || 'JOINT',
+      status: 'ACTIVE'
+    }])
+    .select();
+  if (error) throw error;
+  return data;
+}

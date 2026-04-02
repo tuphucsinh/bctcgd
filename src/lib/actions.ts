@@ -1,3 +1,5 @@
+"use server";
+
 import { supabase } from './supabase';
 
 export type TransactionInput = {
@@ -30,16 +32,13 @@ export async function getFinancialSummary(userId: string) {
     .from('debts')
     .select('remaining_principal');
 
-  // 3. Giao dịch trong tháng này
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
-
+  // 3. Giao dịch (Tạm thời lấy tất cả để hiển thị dữ liệu mẫu)
   const { data: transactions } = await supabase
     .from('transactions')
     .select('amount, type')
-    .eq('owner', owner)
-    .gte('created_at', startOfMonth.toISOString());
+    .eq('owner', owner);
+
+  console.log(`[DEBUG] getFinancialSummary for ${owner}:`, { transactionsCount: transactions?.length });
 
   const totalAssets = assets?.reduce((sum: number, a) => sum + Number(a.current_value), 0) || 0;
   const totalCash = assets?.filter(a => a.type === 'CASH').reduce((sum: number, a) => sum + Number(a.current_value), 0) || 0;
@@ -104,8 +103,10 @@ export async function getRecentTransactions(userId: string, limit = 5) {
     .from('transactions')
     .select('*, categories(name, icon)')
     .eq('owner', ownerMap[userId] || 'JOINT')
-    .order('created_at', { ascending: false })
+    .order('date', { ascending: false })
     .limit(limit);
+
+  console.log(`[DEBUG] getRecentTransactions for ${ownerMap[userId] || 'JOINT'}:`, { count: data?.length });
 
   if (error) throw error;
   return data;
@@ -228,4 +229,72 @@ export async function getMonthlyTrend(userId: string) {
   });
 
   return Object.values(dailyData);
+}
+
+/**
+ * Lấy danh sách giao dịch THU NHẬP trong tháng hiện tại
+ */
+export async function getIncomeTransactions(userId: string) {
+  const ownerMap: Record<string, 'HIEU' | 'LY' | 'JOINT'> = {
+    hieu: 'HIEU',
+    ly: 'LY',
+    joint: 'JOINT'
+  };
+  
+  console.log(`[DEBUG] getIncomeTransactions for ${userId}`);
+  
+  let query = supabase
+    .from('transactions')
+    .select('*, categories(name, icon, income_type)')
+    .eq('type', 'INCOME')
+    .order('date', { ascending: false });
+
+  if (userId !== 'all') {
+    const owner = ownerMap[userId] || 'JOINT';
+    query = query.eq('owner', owner);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error(`[ERROR] getIncomeTransactions for ${userId}:`, error);
+    throw error;
+  }
+  
+  console.log(`[DEBUG] Found ${data?.length} income records for ${userId}`);
+  return data;
+}
+
+/**
+ * Lấy danh sách giao dịch CHI TIÊU trong tháng hiện tại
+ */
+export async function getExpenseTransactions(userId: string) {
+  const ownerMap: Record<string, 'HIEU' | 'LY' | 'JOINT'> = {
+    hieu: 'HIEU',
+    ly: 'LY',
+    joint: 'JOINT'
+  };
+  
+  console.log(`[DEBUG] getExpenseTransactions for ${userId}`);
+  
+  let query = supabase
+    .from('transactions')
+    .select('*, categories(name, icon)')
+    .eq('type', 'EXPENSE')
+    .order('date', { ascending: false });
+
+  if (userId !== 'all') {
+    const owner = ownerMap[userId] || 'JOINT';
+    query = query.eq('owner', owner);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error(`[ERROR] getExpenseTransactions for ${userId}:`, error);
+    throw error;
+  }
+  
+  console.log(`[DEBUG] Found ${data?.length} expense records for ${userId}`);
+  return data;
 }

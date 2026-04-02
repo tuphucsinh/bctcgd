@@ -1,14 +1,18 @@
 -- 1. Enum cho các trường phân loại
-CREATE TYPE transaction_type AS ENUM ('INCOME', 'EXPENSE', 'DEBT_PAYMENT', 'ASSET_SELL');
+CREATE TYPE transaction_type AS ENUM ('INCOME', 'EXPENSE', 'DEBT_PAYMENT', 'ASSET_BUY', 'ASSET_SELL');
 CREATE TYPE owner_type AS ENUM ('HIEU', 'LY', 'JOINT');
 CREATE TYPE asset_status AS ENUM ('ACTIVE', 'SOLD');
 CREATE TYPE category_type AS ENUM ('INCOME', 'EXPENSE');
+CREATE TYPE asset_cat_type AS ENUM ('REAL_ESTATE', 'FINANCE', 'GOLD', 'OTHER');
+CREATE TYPE debt_type AS ENUM ('BORROW', 'LEND');
+CREATE TYPE debt_term AS ENUM ('SHORT', 'LONG');
 
 -- 2. Bảng Danh mục (Categories)
 CREATE TABLE categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   type category_type NOT NULL,
+  is_passive BOOLEAN DEFAULT false, -- True: Thụ động (với thu nhập), False: Chủ động
   icon TEXT, -- Dùng icon name (vd: 'car', 'home')
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
@@ -17,9 +21,15 @@ CREATE TABLE categories (
 CREATE TABLE debts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  initial_principal DECIMAL(15, 2) NOT NULL, -- Nợ gốc ban đầu
-  remaining_principal DECIMAL(15, 2) NOT NULL, -- Dư nợ còn lại
+  debt_type debt_type NOT NULL DEFAULT 'BORROW', -- Phân biệt Nợ (Borrow) / Cho vay (Lend)
+  category TEXT, -- 'Ngân hàng', 'Cọc BĐS', 'Nợ khác'
+  term debt_term, -- 'SHORT' hoặc 'LONG'
+  amount DECIMAL(15, 2) NOT NULL, -- Số tiền gốc (vay/cho vay)
+  remaining_amount DECIMAL(15, 2) NOT NULL, -- Dư nợ/dư cho vay còn lại
   interest_rate DECIMAL(5, 2), -- Lãi suất % năm
+  monthly_payment_amount DECIMAL(15, 2), -- Số tiền gốc trả/tháng (với NH)
+  due_date DATE, -- Ngày trả (với Cho vay/Đáo hạn nợ)
+  note TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
@@ -28,11 +38,12 @@ CREATE TABLE debts (
 CREATE TABLE assets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  type TEXT NOT NULL, -- BĐS, Vàng, Cổ phiếu...
+  type asset_cat_type NOT NULL, -- BĐS, Vàng, Tài chính...
   buy_price DECIMAL(15, 2) NOT NULL, -- Giá Mua
   current_value DECIMAL(15, 2) NOT NULL, -- Giá trị hiện tại (Cập nhật tay)
   status asset_status DEFAULT 'ACTIVE',
   sell_price DECIMAL(15, 2), -- Giá Bán (nếu đã bán)
+  note TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
@@ -71,12 +82,22 @@ CREATE POLICY "Allow ALL for authenticatd users on assets" ON assets FOR ALL USI
 CREATE POLICY "Allow ALL for authenticatd users on transactions" ON transactions FOR ALL USING (auth.role() = 'authenticated');
 
 -- 7. Dummy Data cơ bản cho category
-INSERT INTO categories (name, type, icon) VALUES 
-('Lương', 'INCOME', 'wallet'),
-('Bán hàng', 'INCOME', 'store'),
-('Cổ tức', 'INCOME', 'pie-chart'),
-('Ăn uống', 'EXPENSE', 'utensils'),
-('Di chuyển', 'EXPENSE', 'car'),
-('Hoá đơn/Tiện ích', 'EXPENSE', 'zap'),
-('Sức khoẻ', 'EXPENSE', 'heart-pulse'),
-('Giải trí', 'EXPENSE', 'gamepad');
+INSERT INTO categories (name, type, is_passive, icon) VALUES 
+-- Thu nhập chủ động
+('Lương', 'INCOME', false, 'wallet'),
+('Thưởng', 'INCOME', false, 'award'),
+-- Thu nhập thụ động
+('Bất động sản', 'INCOME', true, 'building'),
+('Tài chính', 'INCOME', true, 'trending-up'),
+('Thu nhập khác', 'INCOME', true, 'plus-circle'),
+-- Chi tiêu
+('Ăn uống', 'EXPENSE', false, 'utensils'),
+('Di chuyển', 'EXPENSE', false, 'car'),
+('Hoá đơn', 'EXPENSE', false, 'receipt'),
+('Giao tế', 'EXPENSE', false, 'users'),
+('Giải trí', 'EXPENSE', false, 'gamepad-2'),
+('Đồ dùng gia đình', 'EXPENSE', false, 'home'),
+('Y tế', 'EXPENSE', false, 'heart-pulse'),
+('Học hành', 'EXPENSE', false, 'book-open'),
+('Con cái', 'EXPENSE', false, 'baby'),
+('Chi tiêu khác', 'EXPENSE', false, 'more-horizontal');

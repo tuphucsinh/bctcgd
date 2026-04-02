@@ -22,7 +22,7 @@ export async function getFinancialSummary(userId: string) {
   // 1. Tổng giá trị tài sản hiện tại
   const { data: assets } = await supabase
     .from('assets')
-    .select('current_value')
+    .select('current_value, type')
     .eq('status', 'ACTIVE');
     
   // 2. Tổng dư nợ hiện tại
@@ -42,6 +42,7 @@ export async function getFinancialSummary(userId: string) {
     .gte('created_at', startOfMonth.toISOString());
 
   const totalAssets = assets?.reduce((sum: number, a) => sum + Number(a.current_value), 0) || 0;
+  const totalCash = assets?.filter(a => a.type === 'CASH').reduce((sum: number, a) => sum + Number(a.current_value), 0) || 0;
   const totalDebts = debts?.reduce((sum: number, d) => sum + Number(d.remaining_principal), 0) || 0;
   
   const monthlyIncome = transactions
@@ -54,6 +55,7 @@ export async function getFinancialSummary(userId: string) {
 
   return {
     totalAssets,
+    totalCash,
     totalDebts,
     netWorth: totalAssets - totalDebts,
     monthlyIncome,
@@ -187,4 +189,43 @@ export async function createDebt(input: DebtInput) {
     .select();
   if (error) throw error;
   return data;
+}
+
+/**
+ * Láy dữ liệu biểu đồ xu hướng Tháng
+ */
+export async function getMonthlyTrend(userId: string) {
+  const ownerMap: Record<string, 'HIEU' | 'LY' | 'JOINT'> = {
+    hieu: 'HIEU',
+    ly: 'LY',
+    joint: 'JOINT'
+  };
+  const owner = ownerMap[userId] || 'JOINT';
+
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const { data: transactions, error } = await supabase
+    .from('transactions')
+    .select('amount, type, date')
+    .eq('owner', owner)
+    .gte('date', startOfMonth.toISOString().split('T')[0])
+    .order('date', { ascending: true });
+
+  if (error) throw error;
+
+  const dailyData: Record<string, { date: string, income: number, expense: number }> = {};
+  
+  // Tổng hợp dữ liệu theo ngày
+  transactions?.forEach(t => {
+    const d = new Date(t.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    if (!dailyData[d]) {
+      dailyData[d] = { date: d, income: 0, expense: 0 };
+    }
+    if (t.type === 'INCOME') dailyData[d].income += Number(t.amount);
+    if (t.type === 'EXPENSE') dailyData[d].expense += Number(t.amount);
+  });
+
+  return Object.values(dailyData);
 }

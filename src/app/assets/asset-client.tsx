@@ -24,7 +24,16 @@ const OWNER_BADGES = {
   LY: { label: "Ly", icon: User, color: "bg-rose-500/10 text-rose-500 border-rose-500/20" },
 };
 
-export function AssetClient({ initialAssets }: { initialAssets: Record<string, any>[] }) {
+interface Asset {
+  id: string;
+  type: string;
+  owner: string;
+  name: string;
+  bank_name?: string | null;
+  current_value: number | string;
+}
+
+export function AssetClient({ initialAssets }: { initialAssets: Asset[] }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

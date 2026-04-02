@@ -19,17 +19,25 @@ import { addTransaction, getCategories } from "@/lib/actions";
 export function TransactionModal({
   children,
   currentUser,
+  defaultType = "EXPENSE",
 }: {
   children: React.ReactNode;
   currentUser: { id: string; name: string };
+  defaultType?: "EXPENSE" | "INCOME";
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
-  const [type, setType] = useState<"EXPENSE" | "INCOME">("EXPENSE");
-  const [categories, setCategories] = useState<any[]>([]);
+  const [type, setType] = useState<"EXPENSE" | "INCOME">(defaultType);
+  const [categories, setCategories] = useState<{id: string; name: string; type: string}[]>([]);
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setType(defaultType);
+    }
+  }, [open, defaultType]);
 
   useEffect(() => {
     async function loadCats() {
@@ -56,7 +64,7 @@ export function TransactionModal({
     try {
       await addTransaction({
         amount: Number(amount),
-        type: type as any,
+        type: type as "EXPENSE" | "INCOME",
         user_id: currentUser.id,
         note: note,
         category_id: selectedCatId || undefined
@@ -92,7 +100,7 @@ export function TransactionModal({
         </DialogHeader>
 
         <Tabs 
-          defaultValue="EXPENSE" 
+          value={type} 
           className="w-full mt-2"
           onValueChange={(v) => {
             setType(v as "EXPENSE" | "INCOME");

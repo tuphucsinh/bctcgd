@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { formatCurrency } from "@/lib/utils";
-import { Plus, ArrowDownRight, ArrowUpRight, User, Users, Loader2 } from "lucide-react";
+import { Plus, ArrowDownRight, ArrowUpRight, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,13 +13,17 @@ import { Progress } from "@/components/ui/progress";
 import { createDebt, type DebtInput } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 
-const OWNER_BADGES = {
-  JOINT: { label: "Chung", icon: Users },
-  HIEU: { label: "Hiếu", icon: User },
-  LY: { label: "Ly", icon: User },
-};
+interface Debt {
+  id: string;
+  name: string;
+  type: string;
+  debtor_creditor: string;
+  original_principal: number | string;
+  remaining_principal: number | string;
+  owner: string;
+}
 
-export function DebtClient({ initialDebts }: { initialDebts: Record<string, any>[] }) {
+export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,7 +62,7 @@ export function DebtClient({ initialDebts }: { initialDebts: Record<string, any>
     }
   };
 
-  const renderDebtCard = (debt: any) => {
+  const renderDebtCard = (debt: Debt) => {
     const original = Number(debt.original_principal);
     const remaining = Number(debt.remaining_principal);
     const paid = original - remaining;

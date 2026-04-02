@@ -89,6 +89,8 @@ export function TransactionModal({
     }
 
     setLoading(true);
+    const numericAmount = Number(amount) * 1000;
+    
     try {
       await addTransaction({
         amount: numericAmount,

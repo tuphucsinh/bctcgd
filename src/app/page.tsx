@@ -209,6 +209,8 @@ function Dashboard() {
   const savingsRate = income > 0 ? ((income - expense) / income) * 100 : 0;
   const isDeficit = expense > income;
 
+  if (!isMounted) return null;
+
   return (
     <main className="w-full bg-background p-4 md:p-6 md:px-8 max-w-7xl mx-auto space-y-6 md:space-y-8 pb-20">
       <header className="flex items-center justify-between mb-2">
@@ -285,7 +287,7 @@ function Dashboard() {
         </SpotlightCard>
 
         {/* Income Card */}
-        <IncomeDetailModal key={currentUser.id} currentUser={currentUser}>
+        <IncomeDetailModal currentUser={currentUser}>
           <SpotlightCard
             color="rgba(16,185,129,0.15)"
             className="rounded-3xl border border-emerald-500/10 bg-[#0a0a0a]/60 shadow-xl cursor-pointer"
@@ -315,11 +317,13 @@ function Dashboard() {
                   </h2>
                 </div>
               </div>
-              <div className="absolute top-1.5 right-1.5 z-30">
+              <div 
+                className="absolute top-1.5 right-1.5 z-30"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <TransactionModal currentUser={currentUser} defaultType="INCOME">
                   <MagneticButton>
                     <button 
-                      onClick={(e) => e.stopPropagation()}
                       className="h-12 w-12 flex items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all active:scale-95 shadow-sm border border-emerald-500/20"
                     >
                       <Plus className="h-6 w-6" />
@@ -347,7 +351,7 @@ function Dashboard() {
         </IncomeDetailModal>
 
         {/* Expense Card */}
-        <ExpenseDetailModal key={currentUser.id} currentUser={currentUser}>
+        <ExpenseDetailModal currentUser={currentUser}>
           <SpotlightCard
             color="rgba(249,115,22,0.15)"
             className="rounded-3xl border border-orange-500/10 bg-[#0a0a0a]/60 shadow-xl"
@@ -377,11 +381,13 @@ function Dashboard() {
                   </h2>
                 </div>
               </div>
-              <div className="absolute top-1.5 right-1.5 z-30">
+              <div 
+                className="absolute top-1.5 right-1.5 z-30"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <TransactionModal currentUser={currentUser} defaultType="EXPENSE">
                   <MagneticButton>
                     <button 
-                      onClick={(e) => e.stopPropagation()}
                       className="h-12 w-12 flex items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white transition-all active:scale-95 shadow-sm border border-orange-500/20"
                     >
                       <Plus className="h-6 w-6" />

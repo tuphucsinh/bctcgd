@@ -58,7 +58,7 @@ export default function Home() {
   };
 
   return (
-    <main className="flex-1 overflow-y-auto bg-background p-4 md:p-6">
+    <main className="w-full bg-background p-4 md:p-6 md:px-8">
       {/* Header bar with user switcher */}
       <header className="mb-6 flex items-center justify-end gap-3">
         <div className="flex items-center gap-2">

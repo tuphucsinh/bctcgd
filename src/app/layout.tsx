@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
+import { Navigation } from "@/components/ui/navigation";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -24,8 +25,11 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        <div className="relative flex min-h-screen flex-col">
-          {children}
+        <div className="relative flex min-h-screen flex-col md:flex-row bg-background">
+          <Navigation />
+          <div className="flex-1 overflow-x-hidden pb-20 md:pb-0">
+            {children}
+          </div>
         </div>
         <Toaster theme="dark" position="bottom-center" />
       </body>

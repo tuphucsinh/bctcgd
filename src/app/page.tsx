@@ -8,14 +8,15 @@ import {
   TrendingDown, 
   Banknote,
   Activity,
-  ListOrdered
+  Activity
 } from "lucide-react";
-import { motion, useMotionValue, useSpring, useTransform, animate } from "framer-motion";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { TransactionModal } from "@/components/ui/transaction-modal";
 import { IncomeDetailModal } from "@/components/ui/income-detail-modal";
 import { ExpenseDetailModal } from "@/components/ui/expense-detail-modal";
 import { getFinancialSummary, getRecentTransactions, getMonthlyTrend } from "@/lib/actions";
+import { AnimatedNumber, SpotlightCard, MagneticButton } from "@/components/ui/dashboard-cards";
+import { TransactionModal } from "@/components/ui/transaction-modal";
 import { 
   AreaChart, 
   Area, 
@@ -45,107 +46,7 @@ const MOCK_TREND_DATA = [
   { date: "30/04", income: 2700000, expense: 2500000 },
 ];
 
-function AnimatedNumber({ value }: { value: number }) {
-  const count = useMotionValue(0);
-  const rounded = useTransform(count, (latest) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Math.floor(latest));
-  });
 
-  useEffect(() => {
-    const controls = animate(count, value, { duration: 0.8, ease: "easeOut" });
-    return () => controls.stop();
-  }, [value, count]);
-
-  return <motion.span>{rounded}</motion.span>;
-}
-
-function SpotlightCard({ children, className, color = "rgba(255,255,255,0.05)", ...props }: React.ComponentPropsWithoutRef<typeof motion.div> & { color?: string }) {
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const rotateX = useSpring(useTransform(mouseY, [-200, 200], [7, -7]), { stiffness: 150, damping: 25 });
-  const rotateY = useSpring(useTransform(mouseX, [-200, 200], [-7, 7]), { stiffness: 150, damping: 25 });
-
-  // Parallax: Nội dung di chuyển lệch pha để tạo chiều sâu
-  const tx = useSpring(useTransform(mouseX, [-200, 200], [-6, 6]), { stiffness: 150, damping: 25 });
-  const ty = useSpring(useTransform(mouseY, [-200, 200], [-6, 6]), { stiffness: 150, damping: 25 });
-
-  function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent<HTMLDivElement>) {
-    const { left, top, width, height } = currentTarget.getBoundingClientRect();
-    mouseX.set(clientX - (left + width / 2));
-    mouseY.set(clientY - (top + height / 2));
-  }
-
-  function handleMouseLeave() {
-    mouseX.set(0);
-    mouseY.set(0);
-  }
-
-  return (
-    <motion.div
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      className={cn("relative group bg-[#0a0a0a]/60 backdrop-blur-2xl border border-white/5 rounded-3xl overflow-hidden transform-gpu transition-all duration-300 hover:border-white/20", className)}
-      style={{ rotateX, rotateY, perspective: 1200 }}
-      {...props}
-    >
-      {/* Glass Noise Surface */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.03] mix-blend-overlay scale-[2]" 
-           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
-      />
-
-      {/* Spotlight Effect Layer */}
-      <motion.div
-        className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-300 group-hover:opacity-60"
-        style={{
-          background: useTransform(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            [mouseX, mouseY] as any,
-            ([x, y]: [number, number]) => `radial-gradient(450px circle at ${x + 250}px ${y + 150}px, ${color}, transparent)`
-          ),
-        }}
-      />
-      
-      {/* Parallax Content Layer */}
-      <motion.div style={{ x: tx as unknown as number, y: ty as unknown as number }} className="relative z-10 w-full h-full">
-        {children}
-      </motion.div>
-    </motion.div>
-  );
-}
-
-function MagneticButton({ children, className }: { children: React.ReactNode, className?: string }) {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const springX = useSpring(x, { stiffness: 150, damping: 15 });
-  const springY = useSpring(y, { stiffness: 150, damping: 15 });
-
-  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const { clientX, clientY, currentTarget } = e;
-    const { left, top, width, height } = currentTarget.getBoundingClientRect();
-    const centerX = left + width / 2;
-    const centerY = top + height / 2;
-    
-    // Magnetic pull to mouse - subtle distance factor
-    x.set((clientX - centerX) * 0.4);
-    y.set((clientY - centerY) * 0.4);
-  }
-
-  function handleMouseLeave() {
-    x.set(0);
-    y.set(0);
-  }
-
-  return (
-    <motion.div
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{ x: springX, y: springY }}
-      className={cn("relative z-30 transition-shadow p-6 -m-6", className)}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 
 function Dashboard() {
@@ -155,7 +56,6 @@ function Dashboard() {
   
   const [currentUser, setCurrentUser] = useState(users.find(u => u.id === userId) || users[0]);
   const [data, setData] = useState<Awaited<ReturnType<typeof getFinancialSummary>> | null>(null);
-  const [recentTrx, setRecentTrx] = useState<Awaited<ReturnType<typeof getRecentTransactions>>>([]);
   const [trendData, setTrendData] = useState<Awaited<ReturnType<typeof getMonthlyTrend>>>([]);
   const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
@@ -171,7 +71,6 @@ function Dashboard() {
           getMonthlyTrend(currentUser.id)
         ]);
         setData(summary);
-        setRecentTrx(transactions || []);
         setTrendData(trend || []);
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
@@ -208,8 +107,6 @@ function Dashboard() {
   // Tính tỷ lệ tiết kiệm
   const savingsRate = income > 0 ? ((income - expense) / income) * 100 : 0;
   const isDeficit = expense > income;
-
-  if (!isMounted) return null;
 
   return (
     <main className="w-full bg-background p-4 md:p-6 md:px-8 max-w-7xl mx-auto space-y-6 md:space-y-8 pb-20">
@@ -253,8 +150,16 @@ function Dashboard() {
         </div>
       </header>
 
-      {/* Metrics Row (3 Cards trên cùng) */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {!isMounted ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="h-32 rounded-3xl bg-white/5 animate-pulse" />
+          <div className="h-32 rounded-3xl bg-white/5 animate-pulse" />
+          <div className="h-32 rounded-3xl bg-white/5 animate-pulse" />
+        </div>
+      ) : (
+        <>
+          {/* Metrics Row (3 Cards trên cùng) */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <SpotlightCard 
           color="rgba(59,130,246,0.15)"
           initial={{ opacity: 0, y: 10 }}
@@ -627,56 +532,8 @@ function Dashboard() {
             </div>
         </div>
       </motion.div>
-
-      {/* Recent Transactions */}
-      <motion.div 
-         initial={{ opacity: 0, y: 20 }}
-         animate={{ opacity: 1, y: 0 }}
-         transition={{ delay: 0.5 }}
-      >
-        <div className="flex items-center justify-between mb-4 px-2">
-           <div className="flex items-center gap-2">
-              <ListOrdered className="h-5 w-5 opacity-70" />
-              <h3 className="text-sm md:text-base font-bold tracking-wide">Giao dịch gần đây</h3>
-           </div>
-           <button className="text-xs text-primary hover:underline font-medium transition-all">Xem tất cả</button>
-        </div>
-
-        <div className="rounded-3xl border border-white/5 bg-card/50 overflow-hidden backdrop-blur-md">
-          {loading ? (
-             <div className="p-8 text-center text-sm text-muted-foreground opacity-50 animate-pulse">Đang tải dữ liệu...</div>
-          ) : recentTrx.length === 0 ? (
-             <div className="p-8 text-center text-sm text-muted-foreground">Chưa có giao dịch nào trong tháng này.</div>
-          ) : (
-             <div className="divide-y divide-white/5">
-                {recentTrx.map((trx, idx) => {
-                  const isIncome = trx.type === 'INCOME';
-                  return (
-                    <div key={trx.id || idx} className="flex items-center justify-between p-4 px-5 md:px-6 hover:bg-white/5 transition-colors group">
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-accent flex items-center justify-center text-lg md:text-xl shadow-inner group-hover:scale-105 transition-transform">
-                          {trx.categories?.icon || (isIncome ? "💰" : "🛒")}
-                        </div>
-                        <div className="flex flex-col">
-                           <span className="font-semibold text-sm md:text-base">{trx.categories?.name || "Khác"}</span>
-                           <span className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{trx.note || "Không có ghi chú"}</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end">
-                         <span className={cn("font-bold text-sm md:text-base", isIncome ? "text-emerald-400" : "")}>
-                           {isIncome ? "+" : "-"}{formatMoney(trx.amount)}
-                         </span>
-                         <span className="text-[10px] text-muted-foreground mt-1 opacity-70 uppercase tracking-wider">
-                           {new Date(trx.created_at || trx.date).toLocaleDateString('vi-VN')}
-                         </span>
-                      </div>
-                    </div>
-                  )
-                })}
-             </div>
-          )}
-        </div>
-      </motion.div>
+      </>
+      )}
     </main>
   );
 }

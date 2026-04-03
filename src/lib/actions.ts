@@ -147,7 +147,7 @@ export async function getAssets() {
 
 export type AssetInput = {
   name: string;
-  type: 'CASH' | 'BANK' | 'SAVINGS' | 'INVESTMENT';
+  type: 'CASH' | 'BANK' | 'SAVINGS' | 'INVESTMENT' | 'FINANCE' | 'REAL_ESTATE' | 'CRYPTO' | 'GOLD' | 'OTHER';
   current_value: number;
   owner?: 'HIEU' | 'LY' | 'JOINT';
   icon?: string;

@@ -1,0 +1,46 @@
+﻿
+> web-app@0.1.0 lint
+> eslint
+
+
+D:\AI\bctcgd\brute_pooler.js
+   1:20  error    A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  17:12  warning  'err' is defined but never used          @typescript-eslint/no-unused-vars
+  32:12  warning  'err' is defined but never used          @typescript-eslint/no-unused-vars
+
+D:\AI\bctcgd\brute_pooler_2.js
+  1:20  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\AI\bctcgd\brute_pooler_encoded.js
+  1:20  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\AI\bctcgd\brute_pooler_ports.js
+  1:20  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\AI\bctcgd\check_db.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\AI\bctcgd\direct_ipv6.js
+  1:20  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\AI\bctcgd\direct_migrate.js
+  1:20  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\AI\bctcgd\migrate_category.js
+  1:20  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\AI\bctcgd\seed_expense.js
+   1:26  error    A `require()` style import is forbidden    @typescript-eslint/no-require-imports
+   2:1   error    A `require()` style import is forbidden    @typescript-eslint/no-require-imports
+  60:11  warning  'data' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\AI\bctcgd\test_all_regions.js
+  1:20  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\AI\bctcgd\test_pooler_obj.js
+  1:20  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+Γ£û 17 problems (14 errors, 3 warnings)
+

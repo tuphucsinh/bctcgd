@@ -14,6 +14,19 @@ import { ArrowDownCircle, ArrowUpCircle, Plus, Calendar, Tag } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { addTransaction, getCategories } from "@/lib/actions";
 
+const EXPENSE_CATEGORIES = [
+  { id: "eating", name: "Ăn uống", icon: "🍱" },
+  { id: "transport", name: "Di chuyển", icon: "🚗" },
+  { id: "bills", name: "Hóa đơn", icon: "⚡" },
+  { id: "social", name: "Giao tế", icon: "🤝" },
+  { id: "entertainment", name: "Giải trí", icon: "🎮" },
+  { id: "shopping", name: "Đồ dùng", icon: "🛒" },
+  { id: "health", name: "Sức khỏe", icon: "🏥" },
+  { id: "education", name: "Học hành", icon: "📚" },
+  { id: "kids", name: "Con cái", icon: "👶" },
+  { id: "other_expense", name: "Khác", icon: "✨" },
+];
+
 const users = [
   { id: "hieu", name: "Hiếu", color: "bg-blue-500" },
   { id: "ly", name: "Ly", color: "bg-pink-500" }
@@ -226,10 +239,17 @@ export function TransactionModal({
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Input
+              id="note"
+              placeholder="Ghi chú thêm..."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="h-12 bg-background border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 rounded-xl"
+            />
+          </div>
+
           <div className="flex-1 flex flex-col min-h-0 space-y-1.5 overflow-hidden">
-            <Label className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider flex items-center gap-1">
-              <Tag className="w-3 h-3"/> Hạng mục
-            </Label>
             <div className="grid grid-cols-4 gap-2 overflow-y-auto pr-1 py-1 custom-scrollbar">
               {filteredCategories.map((cat) => (
                 <button
@@ -248,19 +268,6 @@ export function TransactionModal({
                 </button>
               ))}
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="note" className="text-muted-foreground text-xs font-medium uppercase tracking-wider flex items-center gap-1">
-              <Calendar className="w-3 h-3"/> Ghi chú thêm
-            </Label>
-            <Input
-              id="note"
-              placeholder="Ví dụ: Cơm trưa công ty..."
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="h-12 bg-background border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50"
-            />
           </div>
 
           <button

@@ -38,8 +38,6 @@ export function Navigation() {
   const pathname = usePathname();
   const isDetailsPage = pathname === "/transactions/details";
   
-  if (isDetailsPage) return null;
-
   // Logic quote thay đổi theo ngày
   const today = new Date().getDate();
   const quoteIndex = today % FINANCIAL_QUOTES.length;
@@ -47,8 +45,11 @@ export function Navigation() {
 
   return (
     <>
-      {/* Mobile Bottom Navigation (Floating Pill Island) */}
-      <nav className="fixed bottom-[calc(env(safe-area-inset-bottom)+8px)] left-4 right-4 z-50 flex items-center justify-around rounded-full border border-white/10 bg-[#0a0a0a]/60 p-1.5 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] md:hidden">
+      {/* Mobile Bottom Navigation (Floating Pill Island) - Ẩn hoàn toàn khi ở trang chi tiết trên mobile */}
+      <nav className={cn(
+        "fixed bottom-[calc(env(safe-area-inset-bottom)+8px)] left-4 right-4 z-50 flex items-center justify-around rounded-full border border-white/10 bg-[#0a0a0a]/60 p-1.5 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] md:hidden text-muted-foreground",
+        isDetailsPage && "hidden"
+      )}>
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;

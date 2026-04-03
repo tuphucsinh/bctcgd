@@ -7,7 +7,7 @@ export default async function AssetDetailsPage() {
   const assets = await getAssets();
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-7xl">
        <AssetDetailsClient allAssets={assets || []} />
     </div>
   );

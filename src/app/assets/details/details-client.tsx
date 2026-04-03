@@ -1,8 +1,8 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { SpotlightCard, MagneticButton } from "@/components/ui/dashboard-cards";
-import { Building, Bitcoin, Coins, PiggyBank, Package, Loader2, Trash2 } from "lucide-react";
+import { SpotlightCard } from "@/components/ui/dashboard-cards";
+import { Building, Bitcoin, Coins, PiggyBank, Package, Loader2, Trash2, ArrowLeft } from "lucide-react";
 import { Suspense, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -126,7 +126,7 @@ function AssetDetailsContent({ allAssets }: { allAssets: Asset[] }) {
   };
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto py-8 px-6 flex flex-col gap-8 min-h-screen">
+    <div className="w-full max-w-7xl mx-auto py-8 px-6 flex flex-col gap-8 min-h-screen">
       {/* Header - Tối giản & Responsive */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
@@ -172,18 +172,16 @@ function AssetDetailsContent({ allAssets }: { allAssets: Asset[] }) {
                 filteredAssets.map((asset) => (
                   <tr key={asset.id} className="group border-b border-white/[0.02]">
                     <td className="p-5">
-                      <div className="flex flex-col">
+                      <div className="flex items-center gap-3">
                         <span 
                           onClick={() => handleOpenModal(asset)}
-                          className="flex items-center gap-1.5 text-sm font-bold text-white cursor-pointer uppercase tracking-tight"
+                          className={`flex items-center gap-1.5 text-sm font-bold ${info.color} cursor-pointer uppercase tracking-tight transition-all duration-300 hover:brightness-125 hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.1)] whitespace-nowrap`}
                         >
                           {asset.name}
                         </span>
-                        <div className="hidden md:flex items-center gap-2 mt-1">
-                          <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-white/5 text-white/40 uppercase tracking-tighter border border-white/5">
-                            {asset.asset_class === 'FIXED' ? 'Cố định' : 'Lưu động'}
-                          </span>
-                        </div>
+                        <span className="hidden md:inline-flex items-center text-[8px] font-black px-1.5 py-0.5 rounded bg-white/5 text-white/20 uppercase tracking-tighter border border-white/5 leading-none shrink-0">
+                          {asset.asset_class === 'FIXED' ? 'Cố định' : 'Lưu động'}
+                        </span>
                       </div>
                     </td>
                     <td className={`p-5 text-center font-mono text-sm text-white/80 px-2 ${type === 'REAL_ESTATE' ? 'hidden md:table-cell' : ''}`}>
@@ -340,16 +338,15 @@ function AssetDetailsContent({ allAssets }: { allAssets: Asset[] }) {
         </DialogContent>
       </Dialog>
 
-      {/* Footer / Summary */}
+      {/* Footer / Summary - Nút Back Tối giản */}
       <div className="flex justify-end pt-4">
-          <MagneticButton>
-              <button 
-                onClick={() => router.push('/assets')}
-                className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all font-bold text-sm"
-              >
-                  Quay lại Tổng quan
-              </button>
-          </MagneticButton>
+          <button 
+            onClick={() => router.push('/assets')}
+            className="p-4 rounded-2xl bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+            title="Quay lại"
+          >
+            <ArrowLeft className="h-6 w-6" />
+          </button>
       </div>
     </div>
   );

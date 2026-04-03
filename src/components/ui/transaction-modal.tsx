@@ -25,12 +25,19 @@ export function TransactionModal({
   defaultType = "EXPENSE",
 }: {
   children: React.ReactNode;
-  currentUser: { id: string; name: string };
+  currentUser: { id: string; name?: string };
   defaultType?: "EXPENSE" | "INCOME";
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [activeUser, setActiveUser] = useState(currentUser);
+  
+  // Xử lý fallback cho user
+  const initialUser = {
+    id: currentUser.id === 'all' ? 'hieu' : currentUser.id,
+    name: currentUser.name || (currentUser.id === 'ly' ? 'Ly' : 'Hiếu')
+  };
+
+  const [activeUser, setActiveUser] = useState(initialUser);
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [type, setType] = useState<"EXPENSE" | "INCOME">(defaultType);
@@ -39,7 +46,10 @@ export function TransactionModal({
 
   useEffect(() => {
     if (open) {
-      setActiveUser(currentUser);
+      setActiveUser({
+        id: currentUser.id === 'all' ? 'hieu' : currentUser.id,
+        name: currentUser.name || (currentUser.id === 'ly' ? 'Ly' : 'Hiếu')
+      });
     }
   }, [open, currentUser]);
 

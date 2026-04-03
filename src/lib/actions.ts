@@ -28,12 +28,11 @@ interface Transaction {
  * Lấy tóm tắt tài chính dựa theo User
  */
 export async function getFinancialSummary(userId: string) {
-  const ownerMap: Record<string, 'HIEU' | 'LY' | 'JOINT'> = {
+  const ownerMap: Record<string, 'HIEU' | 'LY'> = {
     hieu: 'HIEU',
-    ly: 'LY',
-    joint: 'JOINT'
+    ly: 'LY'
   };
-  const owner = ownerMap[userId] || 'JOINT';
+  const owner = (userId in ownerMap) ? ownerMap[userId] : null;
 
   // 1. Tổng giá trị tài sản hiện tại
   const { data: assets } = await supabase
@@ -47,11 +46,18 @@ export async function getFinancialSummary(userId: string) {
     .select('remaining_principal');
 
   // 3. Giao dịch
-  const { data: transactions } = await supabase
+  let query = supabase
     .from('transactions')
-    .select('amount, type')
-    .eq('owner', owner);
+    .select('amount, type');
+    
+  if (owner) {
+    query = query.eq('owner', owner);
+  } else {
+    // Nếu là all (hoặc không có user cụ thể), lấy cả HIEU và LY
+    query = query.in('owner', ['HIEU', 'LY']);
+  }
 
+  const { data: transactions } = await query;
   const totalAssets = assets?.reduce((sum: number, a: Asset) => sum + Number(a.current_value), 0) || 0;
   const totalCash = assets?.filter((a: Asset) => a.type === 'CASH').reduce((sum: number, a: Asset) => sum + Number(a.current_value), 0) || 0;
   const totalDebts = debts?.reduce((sum: number, d: Debt) => sum + Number(d.remaining_principal), 0) || 0;
@@ -79,10 +85,9 @@ export async function getFinancialSummary(userId: string) {
  * Thêm giao dịch mới
  */
 export async function addTransaction(input: TransactionInput) {
-  const ownerMap: Record<string, 'HIEU' | 'LY' | 'JOINT'> = {
+  const ownerMap: Record<string, 'HIEU' | 'LY'> = {
     hieu: 'HIEU',
-    ly: 'LY',
-    joint: 'JOINT'
+    ly: 'LY'
   };
 
   const { data, error } = await supabase
@@ -91,7 +96,7 @@ export async function addTransaction(input: TransactionInput) {
       amount: input.amount,
       category_id: input.category_id || null,
       note: input.note,
-      owner: ownerMap[input.user_id] || 'JOINT',
+      owner: ownerMap[input.user_id] || 'JOINT', // Mặc định là chung nếu không có trong map
       type: input.type,
       date: new Date().toISOString().split('T')[0]
     }])
@@ -105,18 +110,25 @@ export async function addTransaction(input: TransactionInput) {
  * Lấy danh sách giao dịch gần đây
  */
 export async function getRecentTransactions(userId: string, limit = 5) {
-  const ownerMap: Record<string, 'HIEU' | 'LY' | 'JOINT'> = {
+  const ownerMap: Record<string, 'HIEU' | 'LY'> = {
     hieu: 'HIEU',
-    ly: 'LY',
-    joint: 'JOINT'
+    ly: 'LY'
   };
   
-  const { data, error } = await supabase
+  let query = supabase
     .from('transactions')
     .select('*, categories(name, icon)')
-    .eq('owner', ownerMap[userId] || 'JOINT')
     .order('date', { ascending: false })
     .limit(limit);
+
+  if (userId in ownerMap) {
+    query = query.eq('owner', ownerMap[userId]);
+  } else {
+    // Gia đình/Tất cả
+    query = query.in('owner', ['HIEU', 'LY']);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return data;
@@ -296,23 +308,29 @@ export async function createDebt(input: DebtInput) {
  * Láy dữ liệu biểu đồ xu hướng Tháng
  */
 export async function getMonthlyTrend(userId: string) {
-  const ownerMap: Record<string, 'HIEU' | 'LY' | 'JOINT'> = {
+  const ownerMap: Record<string, 'HIEU' | 'LY'> = {
     hieu: 'HIEU',
-    ly: 'LY',
-    joint: 'JOINT'
+    ly: 'LY'
   };
-  const owner = ownerMap[userId] || 'JOINT';
+  const owner = ownerMap[userId];
 
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
 
-  const { data: transactions, error } = await supabase
+  let query = supabase
     .from('transactions')
     .select('amount, type, date')
-    .eq('owner', owner)
     .gte('date', startOfMonth.toISOString().split('T')[0])
     .order('date', { ascending: true });
+
+  if (owner) {
+    query = query.eq('owner', owner);
+  } else {
+    query = query.in('owner', ['HIEU', 'LY']);
+  }
+
+  const { data: transactions, error } = await query;
 
   if (error) throw error;
 
@@ -335,10 +353,9 @@ export async function getMonthlyTrend(userId: string) {
  * Lấy danh sách giao dịch THU NHẬP trong tháng hiện tại
  */
 export async function getIncomeTransactions(userId: string) {
-  const ownerMap: Record<string, 'HIEU' | 'LY' | 'JOINT'> = {
+  const ownerMap: Record<string, 'HIEU' | 'LY'> = {
     hieu: 'HIEU',
-    ly: 'LY',
-    joint: 'JOINT'
+    ly: 'LY'
   };
   
   
@@ -368,10 +385,9 @@ export async function getIncomeTransactions(userId: string) {
  * Lấy danh sách giao dịch CHI TIÊU trong tháng hiện tại
  */
 export async function getExpenseTransactions(userId: string) {
-  const ownerMap: Record<string, 'HIEU' | 'LY' | 'JOINT'> = {
+  const ownerMap: Record<string, 'HIEU' | 'LY'> = {
     hieu: 'HIEU',
-    ly: 'LY',
-    joint: 'JOINT'
+    ly: 'LY'
   };
   
   console.log(`[DEBUG] getExpenseTransactions for ${userId}`);

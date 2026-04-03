@@ -134,8 +134,8 @@ export function TransactionModal({
           </div>
         )}
       />
-      <DialogContent className="sm:max-w-[400px] max-h-[85vh] flex flex-col bg-background/90 backdrop-blur-xl border-border/50 shadow-2xl px-6 pb-6 pt-10 overflow-y-auto custom-scrollbar">
-        <div className="flex-shrink-0 flex items-center justify-center mb-4">
+      <DialogContent className="sm:max-w-[400px] max-h-[95vh] flex flex-col bg-background/95 backdrop-blur-xl border-border/50 shadow-2xl px-6 pb-6 pt-4 overflow-y-auto custom-scrollbar">
+        <div className="flex-shrink-0 flex items-center justify-center mb-2">
           <div className="flex p-0.5 rounded-full bg-muted/40 backdrop-blur-md border border-white/5">
             {users.map((u) => {
               const isActive = activeUser.id === u.id;
@@ -163,35 +163,51 @@ export function TransactionModal({
           </div>
         </div>
 
-        <Tabs 
-          value={type} 
-          className="flex-shrink-0 w-full mb-4"
-          onValueChange={(v) => {
-            setType(v as "EXPENSE" | "INCOME");
-            setSelectedCatId(null);
-          }}
-        >
-          <TabsList className="grid w-full grid-cols-2 p-1.5 bg-black/40 backdrop-blur-md border border-white/5 rounded-2xl h-14 shadow-inner">
-            <TabsTrigger 
-              value="EXPENSE" 
-              className="rounded-xl h-full data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-500 data-[state=active]:shadow-[0_0_15px_rgba(249,115,22,0.15)] data-[state=active]:border data-[state=active]:border-orange-500/30 transition-all text-sm font-bold gap-3"
-            >
-              <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
-                <ArrowDownCircle className="w-5 h-5" />
-              </div>
-              Chi Tiêu
-            </TabsTrigger>
-            <TabsTrigger 
-              value="INCOME" 
-              className="rounded-xl h-full data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-500 data-[state=active]:shadow-[0_0_15px_rgba(16,185,129,0.15)] data-[state=active]:border data-[state=active]:border-emerald-500/30 transition-all text-sm font-bold gap-3"
-            >
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                <ArrowUpCircle className="w-5 h-5" />
-              </div>
-              Thu Nhập
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {/* Thay thế Tabs library bằng custom flex container để tránh border lồng nhau */}
+        <div className="flex-shrink-0 w-full mb-4 p-1 bg-black/40 backdrop-blur-md border border-white/5 rounded-2xl h-12 flex items-center justify-between shadow-inner">
+          <button
+            type="button"
+            onClick={() => {
+              setType("EXPENSE");
+              setSelectedCatId(null);
+            }}
+            className={cn(
+              "flex-1 h-full rounded-xl flex items-center justify-center gap-2 transition-all font-bold text-sm",
+              type === "EXPENSE" 
+                ? "bg-orange-500/20 text-orange-500 shadow-none border-none outline-none" 
+                : "text-white/20 hover:text-white/40"
+            )}
+          >
+            <div className={cn(
+              "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+              type === "EXPENSE" ? "bg-orange-500/10" : "bg-white/5"
+            )}>
+              <ArrowDownCircle className="w-5 h-5" />
+            </div>
+            Chi Tiêu
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setType("INCOME");
+              setSelectedCatId(null);
+            }}
+            className={cn(
+              "flex-1 h-full rounded-xl flex items-center justify-center gap-2 transition-all font-bold text-sm",
+              type === "INCOME" 
+                ? "bg-emerald-500/20 text-emerald-500 shadow-none border-none outline-none" 
+                : "text-white/20 hover:text-white/40"
+            )}
+          >
+            <div className={cn(
+              "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+              type === "INCOME" ? "bg-emerald-500/10" : "bg-white/5"
+            )}>
+              <ArrowUpCircle className="w-5 h-5" />
+            </div>
+            Thu Nhập
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col space-y-4 overflow-hidden">
           <div className="flex-shrink-0 space-y-1.5">

@@ -64,7 +64,7 @@ function Dashboard() {
     async function fetchData() {
       setLoading(true);
       try {
-        const [summary, transactions, trend] = await Promise.all([
+        const [summary, , trend] = await Promise.all([
           getFinancialSummary(currentUser.id),
           getRecentTransactions(currentUser.id, 5),
           getMonthlyTrend(currentUser.id)

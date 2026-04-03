@@ -7,7 +7,7 @@ export default async function AssetsPage() {
   const assets = await getAssets();
 
   return (
-    <div className="mx-auto max-w-5xl py-8">
+    <div className="mx-auto max-w-7xl py-8">
       <AssetClient initialAssets={assets || []} />
     </div>
   );

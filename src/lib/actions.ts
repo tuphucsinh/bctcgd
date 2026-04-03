@@ -147,25 +147,115 @@ export async function getAssets() {
 
 export type AssetInput = {
   name: string;
-  type: 'CASH' | 'BANK' | 'SAVINGS' | 'INVESTMENT' | 'FINANCE' | 'REAL_ESTATE' | 'CRYPTO' | 'GOLD' | 'OTHER';
-  current_value: number;
-  owner?: 'HIEU' | 'LY' | 'JOINT';
+  type: 'FINANCE' | 'REAL_ESTATE' | 'CRYPTO' | 'GOLD' | 'OTHER';
+  asset_class: 'FIXED' | 'LIQUID';
+  quantity: number;
+  purchase_price: number;
+  current_price: number;
+  current_value: number; // sum = qty * current_price
+  notes?: string;
+  created_at?: string; // Cho phép sửa thời gian tạo
   icon?: string;
   color?: string;
   bank_name?: string;
 };
 
 export async function createAsset(input: AssetInput) {
-  const { data, error } = await supabase
-    .from('assets')
-    .insert([{
-      ...input,
-      owner: input.owner || 'JOINT',
+  try {
+    // Map dữ liệu vào đúng cấu trúc cột của bảng assets trong DB hiện tại
+    const toInsert = {
+      name: input.name,
+      type: input.type,
+      asset_class: input.asset_class,
+      quantity: Number(input.quantity) || 0,
+      purchase_price: Number(input.purchase_price) || 0, // Cột chuẩn hiện tại
+      current_price: Number(input.current_price) || 0,
+      current_value: Number(input.current_value) || 0, 
+      notes: input.notes || "",
+      created_at: input.created_at ? new Date(input.created_at).toISOString() : new Date().toISOString(),
       status: 'ACTIVE'
-    }])
-    .select();
-  if (error) throw error;
-  return data;
+    };
+
+    const { data, error } = await supabase
+      .from('assets')
+      .insert([toInsert])
+      .select();
+
+    if (error) {
+      console.error('[DATABASE_ERROR] createAsset:', error);
+      return { success: false, error: error.message };
+    }
+    return { success: true, data };
+  } catch (err) {
+    const error = err as Error;
+    console.error('[SERVER_ERROR] createAsset:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateAsset(id: string, input: Partial<AssetInput>) {
+  try {
+    const toUpdate: Partial<AssetInput> = { ...input };
+    if (toUpdate.quantity !== undefined || toUpdate.current_price !== undefined) {
+      if (toUpdate.quantity !== undefined && toUpdate.current_price !== undefined) {
+        toUpdate.current_value = Number(toUpdate.quantity) * Number(toUpdate.current_price);
+      }
+    }
+    const { data, error } = await supabase
+      .from('assets')
+      .update(toUpdate)
+      .eq('id', id)
+      .select();
+
+    if (error) {
+      console.error('[DATABASE_ERROR] updateAsset:', error);
+      return { success: false, error: error.message };
+    }
+    return { success: true, data };
+  } catch (err) {
+    const error = err as Error;
+    console.error('[SERVER_ERROR] updateAsset:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function sellAsset(
+  id: string, 
+  sellQuantity: number, 
+  sellPrice: number, 
+  currentAsset: { quantity: number, current_price: number, current_value: number }
+) {
+  try {
+    const remainingQty = currentAsset.quantity - sellQuantity;
+    const isSellingAll = remainingQty <= 0;
+
+    let updatePayload: Record<string, unknown> = {};
+
+    if (isSellingAll) {
+      updatePayload = { status: 'SOLD' };
+    } else {
+      updatePayload = { 
+        quantity: remainingQty,
+        current_value: remainingQty * currentAsset.current_price
+      };
+    }
+
+    const { data, error } = await supabase
+      .from('assets')
+      .update(updatePayload)
+      .eq('id', id)
+      .select();
+
+    if (error) {
+      console.error('[DATABASE_ERROR] sellAsset:', error);
+      return { success: false, error: error.message };
+    }
+    return { success: true, data };
+  } catch (err) {
+    const error = err as Error;
+    console.error('[SERVER_ERROR] sellAsset:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 // === API FOR DEBTS ===

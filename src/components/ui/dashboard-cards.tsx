@@ -13,6 +13,7 @@ export function AnimatedNumber({ value }: { value: number | string }) {
   });
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
     const controls = animate(count, numericValue, { duration: 0.8, ease: "easeOut" });
     return () => controls.stop();
@@ -25,15 +26,15 @@ export function AnimatedNumber({ value }: { value: number | string }) {
   );
 }
 
-export function SpotlightCard({ children, className, color = "rgba(255,255,255,0.05)", ...props }: React.ComponentPropsWithoutRef<typeof motion.div> & { color?: string }) {
+export function SpotlightCard({ children, className, color = "rgba(255,255,255,0.05)", noMovement = false, ...props }: React.ComponentPropsWithoutRef<typeof motion.div> & { color?: string, noMovement?: boolean }) {
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-  const rotateX = useSpring(useTransform(mouseY, [-200, 200], [7, -7]), { stiffness: 150, damping: 25 });
-  const rotateY = useSpring(useTransform(mouseX, [-200, 200], [-7, 7]), { stiffness: 150, damping: 25 });
+  const rotateX = useSpring(useTransform(mouseY, [-200, 200], [noMovement ? 0 : 7, noMovement ? 0 : -7]), { stiffness: 150, damping: 25 });
+  const rotateY = useSpring(useTransform(mouseX, [-200, 200], [noMovement ? 0 : -7, noMovement ? 0 : 7]), { stiffness: 150, damping: 25 });
 
   // Parallax: Nội dung di chuyển lệch pha để tạo chiều sâu
-  const tx = useSpring(useTransform(mouseX, [-200, 200], [-6, 6]), { stiffness: 150, damping: 25 });
-  const ty = useSpring(useTransform(mouseY, [-200, 200], [-6, 6]), { stiffness: 150, damping: 25 });
+  const tx = useSpring(useTransform(mouseX, [-200, 200], [noMovement ? 0 : -6, noMovement ? 0 : 6]), { stiffness: 150, damping: 25 });
+  const ty = useSpring(useTransform(mouseY, [-200, 200], [noMovement ? 0 : -6, noMovement ? 0 : 6]), { stiffness: 150, damping: 25 });
 
   function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent<HTMLDivElement>) {
     const { left, top, width, height } = currentTarget.getBoundingClientRect();

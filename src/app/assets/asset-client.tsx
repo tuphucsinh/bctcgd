@@ -215,13 +215,13 @@ export function AssetClient({ initialAssets }: { initialAssets: Asset[] }) {
           </div>
         </SpotlightCard>
 
-        {/* 5. Tài chính (Amber) - USER REQUESTED THEME: Vàng đồng/Cam (Amber) */}
+        {/* 5. Tài chính (Rose) - ĐỔI MÀU TRÁNH TRÙNG VỚI VÀNG */}
         <SpotlightCard 
-          color="rgba(245,158,11,0.15)"
-          className="rounded-3xl border border-amber-500/10 bg-[#0a0a0a]/60 shadow-xl cursor-default"
+          color="rgba(244,63,94,0.15)"
+          className="rounded-3xl border border-rose-500/10 bg-[#0a0a0a]/60 shadow-xl cursor-default"
         >
           <div className="absolute bottom-0 left-0 right-0 h-16 opacity-[0.08] pointer-events-none overflow-hidden">
-            <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-full text-amber-400">
+            <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-full text-rose-400">
                <path d="M0,18 C15,17 30,14 45,10 C60,6 75,8 90,2 C95,0 98,1 100,0 L100,20 L0,20 Z" fill="currentColor" />
             </svg>
           </div>
@@ -230,7 +230,7 @@ export function AssetClient({ initialAssets }: { initialAssets: Asset[] }) {
               <motion.div 
                 animate={{ y: [0, -2, 0] }}
                 transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                className="rounded-xl bg-amber-500/10 p-2 text-amber-400 backdrop-blur-md border border-amber-500/20"
+                className="rounded-xl bg-rose-500/10 p-2 text-rose-400 backdrop-blur-md border border-rose-500/20"
               >
                 <PiggyBank className="h-5 w-5" />
               </motion.div>
@@ -240,7 +240,7 @@ export function AssetClient({ initialAssets }: { initialAssets: Asset[] }) {
             </div>
             <div className="absolute top-1.5 right-1.5 z-30 flex items-start" onClick={(e) => { e.stopPropagation(); handleOpenModal('FINANCE'); }}>
               <MagneticButton>
-                <button className="h-10 w-10 md:h-12 md:w-12 flex items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white transition-all active:scale-95 shadow-sm border border-amber-500/20 cursor-pointer">
+                <button className="h-10 w-10 md:h-12 md:w-12 flex items-center justify-center rounded-2xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all active:scale-95 shadow-sm border border-rose-500/20 cursor-pointer">
                   <Plus className="h-5 w-5 md:h-6 md:w-6" />
                 </button>
               </MagneticButton>

@@ -5,9 +5,6 @@ import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -120,10 +117,14 @@ export function TransactionModal({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[400px] h-[600px] flex flex-col bg-background/90 backdrop-blur-xl border-border/50 shadow-2xl p-6 pt-10 overflow-hidden">
+      <DialogTrigger
+        render={(props) => (
+          <div {...props} className="cursor-pointer">
+            {children}
+          </div>
+        )}
+      />
+      <DialogContent className="sm:max-w-[400px] max-h-[85vh] flex flex-col bg-background/90 backdrop-blur-xl border-border/50 shadow-2xl px-6 pb-6 pt-10 overflow-y-auto custom-scrollbar">
         <div className="flex-shrink-0 flex items-center justify-center mb-4">
           <div className="flex p-0.5 rounded-full bg-muted/40 backdrop-blur-md border border-white/5">
             {users.map((u) => {

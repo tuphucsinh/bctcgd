@@ -199,7 +199,7 @@ function Dashboard() {
   // Dùng dữ liệu thật nếu có, không thì dùng mẫu để demo
   const income = realIncome > 0 ? realIncome : (trendData.length === 0 ? 11000000 : 0);
   const expense = realExpense > 0 ? realExpense : (trendData.length === 0 ? 11500000 : 0); 
-  const cash = (data?.totalAssets ?? 0) > 0 ? (data?.totalAssets ?? 0) : (trendData.length === 0 ? 45000000 : 0);
+  const cash = (data?.totalCash ?? 0) > 0 ? (data?.totalCash ?? 0) : (trendData.length === 0 ? 45000000 : 0);
 
   const totalFlow = income + expense;
   const incomePercent = totalFlow > 0 ? (income / totalFlow) * 100 : 0;

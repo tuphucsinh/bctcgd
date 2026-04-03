@@ -10,6 +10,20 @@ export type TransactionInput = {
   type: 'INCOME' | 'EXPENSE' | 'DEBT_PAYMENT' | 'ASSET_SELL';
 };
 
+interface Asset {
+  current_value: number;
+  type: string;
+}
+
+interface Debt {
+  remaining_principal: number;
+}
+
+interface Transaction {
+  amount: number;
+  type: string;
+}
+
 /**
  * Lấy tóm tắt tài chính dựa theo User
  */
@@ -32,25 +46,23 @@ export async function getFinancialSummary(userId: string) {
     .from('debts')
     .select('remaining_principal');
 
-  // 3. Giao dịch (Tạm thời lấy tất cả để hiển thị dữ liệu mẫu)
+  // 3. Giao dịch
   const { data: transactions } = await supabase
     .from('transactions')
     .select('amount, type')
     .eq('owner', owner);
 
-  console.log(`[DEBUG] getFinancialSummary for ${owner}:`, { transactionsCount: transactions?.length });
-
-  const totalAssets = assets?.reduce((sum: number, a) => sum + Number(a.current_value), 0) || 0;
-  const totalCash = assets?.filter(a => a.type === 'CASH').reduce((sum: number, a) => sum + Number(a.current_value), 0) || 0;
-  const totalDebts = debts?.reduce((sum: number, d) => sum + Number(d.remaining_principal), 0) || 0;
+  const totalAssets = assets?.reduce((sum: number, a: Asset) => sum + Number(a.current_value), 0) || 0;
+  const totalCash = assets?.filter((a: Asset) => a.type === 'CASH').reduce((sum: number, a: Asset) => sum + Number(a.current_value), 0) || 0;
+  const totalDebts = debts?.reduce((sum: number, d: Debt) => sum + Number(d.remaining_principal), 0) || 0;
   
   const monthlyIncome = transactions
-    ?.filter(t => t.type === 'INCOME')
-    .reduce((sum: number, t) => sum + Number(t.amount), 0) || 0;
+    ?.filter((t: Transaction) => t.type === 'INCOME')
+    .reduce((sum: number, t: Transaction) => sum + Number(t.amount), 0) || 0;
     
   const monthlySpending = transactions
-    ?.filter(t => t.type === 'EXPENSE')
-    .reduce((sum: number, t) => sum + Number(t.amount), 0) || 0;
+    ?.filter((t: Transaction) => t.type === 'EXPENSE')
+    .reduce((sum: number, t: Transaction) => sum + Number(t.amount), 0) || 0;
 
   return {
     totalAssets,
@@ -105,8 +117,6 @@ export async function getRecentTransactions(userId: string, limit = 5) {
     .eq('owner', ownerMap[userId] || 'JOINT')
     .order('date', { ascending: false })
     .limit(limit);
-
-  console.log(`[DEBUG] getRecentTransactions for ${ownerMap[userId] || 'JOINT'}:`, { count: data?.length });
 
   if (error) throw error;
   return data;
@@ -241,7 +251,6 @@ export async function getIncomeTransactions(userId: string) {
     joint: 'JOINT'
   };
   
-  console.log(`[DEBUG] getIncomeTransactions for ${userId}`);
   
   let query = supabase
     .from('transactions')

@@ -27,7 +27,7 @@ export function TransactionDetailsClient({ initialUserId }: { initialUserId: str
 
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [activeUserId, setActiveUserId] = useState(initialUserId === 'joint' ? 'all' : initialUserId);
+  const [activeUserId, setActiveUserId] = useState(initialUserId.toLowerCase());
 
   const fetchData = useCallback(async (id: string, trxType: "INCOME" | "EXPENSE") => {
     setLoading(true);
@@ -42,6 +42,10 @@ export function TransactionDetailsClient({ initialUserId }: { initialUserId: str
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    setActiveUserId(initialUserId.toLowerCase());
+  }, [initialUserId]);
 
   useEffect(() => {
     fetchData(activeUserId, type);
@@ -167,7 +171,11 @@ export function TransactionDetailsClient({ initialUserId }: { initialUserId: str
                   {(() => {
                     // Gom nhóm transactions theo ngày
                     const grouped = transactions.reduce((acc, trx) => {
-                      const dateStr = new Date(trx.date).toLocaleDateString('vi-VN', {
+                      if (!trx.date) return acc;
+                      const dateObj = new Date(trx.date);
+                      if (isNaN(dateObj.getTime())) return acc;
+
+                      const dateStr = dateObj.toLocaleDateString('vi-VN', {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric'
@@ -203,10 +211,19 @@ export function TransactionDetailsClient({ initialUserId }: { initialUserId: str
 
                             <div className="flex-1 flex items-center gap-3 overflow-hidden">
                               {/* Cột Danh mục */}
-                              <div className="w-[100px] md:w-[140px] flex-shrink-0">
-                                <span className="font-bold md:text-xs text-[10px] text-white truncate block uppercase tracking-wide">
+                              <div className="w-[100px] md:w-[140px] flex-shrink-0 flex flex-col">
+                                <span className="font-bold md:text-xs text-[11px] text-white truncate block uppercase tracking-wide">
                                   {trx.categories?.name || "Khác"}
                                 </span>
+                                {activeUserId === 'all' && trx.owner && (
+                                  <span className={cn(
+                                    "text-[9px] font-black uppercase tracking-tighter opacity-70",
+                                    isIncome ? "mt-0" : "mt-0.5",
+                                    trx.owner === 'HIEU' ? "text-blue-400" : "text-pink-400"
+                                  )}>
+                                    {trx.owner === 'HIEU' ? "Hiếu" : "Ly"}
+                                  </span>
+                                )}
                               </div>
 
                               {/* Cột Số tiền - Căn giữa số tiền */}

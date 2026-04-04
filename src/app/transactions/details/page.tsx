@@ -6,7 +6,7 @@ export default function TransactionDetailsPage({
 }: {
   searchParams: { user?: string };
 }) {
-  const userId = searchParams.user || "joint";
+  const userId = searchParams.user || "all";
 
   return (
     <Suspense fallback={

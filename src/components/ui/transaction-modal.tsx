@@ -7,25 +7,15 @@ import {
   DialogContent,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowDownCircle, ArrowUpCircle, Plus, Calendar, Tag } from "lucide-react";
+import { 
+  Plus, 
+  ArrowDownCircle, 
+  ArrowUpCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { addTransaction, getCategories } from "@/lib/actions";
-
-const EXPENSE_CATEGORIES = [
-  { id: "eating", name: "Ăn uống", icon: "🍱" },
-  { id: "transport", name: "Di chuyển", icon: "🚗" },
-  { id: "bills", name: "Hóa đơn", icon: "⚡" },
-  { id: "social", name: "Giao tế", icon: "🤝" },
-  { id: "entertainment", name: "Giải trí", icon: "🎮" },
-  { id: "shopping", name: "Đồ dùng", icon: "🛒" },
-  { id: "health", name: "Sức khỏe", icon: "🏥" },
-  { id: "education", name: "Học hành", icon: "📚" },
-  { id: "kids", name: "Con cái", icon: "👶" },
-  { id: "other_expense", name: "Khác", icon: "✨" },
-];
 
 const users = [
   { id: "hieu", name: "Hiếu", color: "bg-blue-500" },
@@ -109,10 +99,10 @@ export function TransactionModal({
     }
 
     setLoading(true);
-    const numericAmount = Number(amount) * 1000;
+    const numericAmount = Number(amount);
     
     try {
-      await addTransaction({
+      const result = await addTransaction({
         amount: numericAmount,
         type: type,
         user_id: activeUser.id,
@@ -120,14 +110,20 @@ export function TransactionModal({
         category_id: selectedCatId || undefined
       });
 
+      if (!result.success) {
+        toast.error(result.error || "Không thể lưu giao dịch");
+        return;
+      }
+
       toast.success(
         `Đã ghi nhận ${type === "EXPENSE" ? "Khoản Chi" : "Thu Nhập"}!`,
-        { description: `${numericAmount.toLocaleString()}k bởi ${activeUser.name}` }
+        { description: `${numericAmount.toLocaleString()}đ bởi ${activeUser.name}` }
       );
       
       setOpen(false);
       setAmount("");
       setNote("");
+      setSelectedCatId(null);
       // Refresh page to show new data
       window.location.reload();
     } catch (err) {

@@ -1,16 +1,16 @@
 "use server";
 
 import { createClient } from '@/utils/supabase/server';
-import { handleActionError, ActionResult } from './helpers';
+import { handleActionError, ActionResult, getOwnerFilter } from './helpers';
 
 export type DebtInput = {
   name: string;
-  debtor_creditor: string;
   type: 'PAYABLE' | 'RECEIVABLE';
   original_principal: number;
   remaining_principal: number;
-  start_date: string;
-  owner?: 'HIEU' | 'LY';
+  term: 'SHORT_TERM' | 'LONG_TERM';
+  interest_rate?: number;
+  monthly_payment_amount?: number;
 };
 
 export async function getDebts() {
@@ -36,12 +36,12 @@ export async function createDebt(input: DebtInput): Promise<ActionResult> {
       .from('debts')
       .insert([{
         name: input.name,
-        debtor_creditor: input.debtor_creditor,
         debt_type: input.type === 'PAYABLE' ? 'BORROW' : 'LEND',
-        amount: input.original_principal,
-        remaining_amount: input.remaining_principal,
-        due_date: input.start_date, // Tạm dùng start_date vào due_date
-        owner: input.owner || 'HIEU'
+        initial_principal: input.original_principal,
+        remaining_principal: input.remaining_principal,
+        interest_rate: input.interest_rate || null,
+        term: input.term === 'SHORT_TERM' ? 'SHORT' : 'LONG',
+        monthly_payment_amount: input.monthly_payment_amount || null
       }])
       .select();
       
@@ -49,5 +49,96 @@ export async function createDebt(input: DebtInput): Promise<ActionResult> {
     return { success: true, data };
   } catch (error) {
     return handleActionError('createDebt', error);
+  }
+}
+
+export async function recordDebtTransaction(input: {
+  debtId: string;
+  amount: number;
+  isPrincipal: boolean;
+  userId: string;
+  note?: string;
+}): Promise<ActionResult> {
+  const supabase = await createClient();
+  const owner = getOwnerFilter(input.userId, false) as string;
+
+  try {
+    // 1. Lấy thông tin khoản nợ
+    const { data: debt, error: debtError } = await supabase
+      .from('debts')
+      .select('*')
+      .eq('id', input.debtId)
+      .single();
+
+    if (debtError || !debt) throw new Error("Không tìm thấy khoản nợ");
+
+    // 2. Tạo giao dịch
+    const { error: transError } = await supabase
+      .from('transactions')
+      .insert([{
+        amount: input.amount,
+        note: input.note || (input.isPrincipal ? `Trả gốc/Hồi vốn: ${debt.name}` : `Trả lãi: ${debt.name}`),
+        type: 'DEBT_PAYMENT',
+        linked_debt_id: input.debtId,
+        is_principal_payment: input.isPrincipal,
+        owner,
+        date: new Date().toISOString().split('T')[0]
+      }]);
+
+    if (transError) throw transError;
+
+    // 3. Cập nhật số dư nợ nếu là trả gốc
+    if (input.isPrincipal) {
+      const newRemaining = Number(debt.remaining_principal) - input.amount;
+      const { error: updateError } = await supabase
+        .from('debts')
+        .update({ remaining_principal: Math.max(0, newRemaining) })
+        .eq('id', input.debtId);
+
+      if (updateError) throw updateError;
+    }
+
+    return { success: true, data: null };
+  } catch (error) {
+    return handleActionError('recordDebtTransaction', error);
+  }
+}
+
+export async function updateDebt(id: string, input: DebtInput): Promise<ActionResult> {
+  const supabase = await createClient();
+  try {
+    const { data, error } = await supabase
+      .from('debts')
+      .update({
+        name: input.name,
+        debt_type: input.type === 'PAYABLE' ? 'BORROW' : 'LEND',
+        initial_principal: input.original_principal,
+        remaining_principal: input.remaining_principal,
+        interest_rate: input.interest_rate || null,
+        term: input.term === 'SHORT_TERM' ? 'SHORT' : 'LONG',
+        monthly_payment_amount: input.monthly_payment_amount || null
+      })
+      .eq('id', id)
+      .select();
+      
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    return handleActionError('updateDebt', error);
+  }
+}
+
+export async function deleteDebt(id: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  try {
+    const { error } = await supabase
+      .from('debts')
+      .delete()
+      .eq('id', id);
+      
+    if (error) throw error;
+    return { success: true, data: null };
+  } catch (error) {
+    return handleActionError('deleteDebt', error);
   }
 }

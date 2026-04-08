@@ -111,7 +111,7 @@ export function IncomeDetailModal({ children, currentUser }: IncomeDetailModalPr
                           "font-extrabold text-[11px]",
                           ["Lương", "Thưởng"].includes(trx.categories?.name || "") 
                             ? "text-emerald-400"  // Chủ động -> Xanh lá
-                            : ["Tài chính", "Bất động sản", "Cổ tức", "Lãi tiết kiệm"].includes(trx.categories?.name || "")
+                            : ["Tài chính", "Bất động sản", "Crypto", "Vàng", "Lãi tiết kiệm"].includes(trx.categories?.name || "")
                               ? "text-blue-400"    // Thụ động -> Xanh dương
                               : "text-emerald-400/80" // Mặc định thu nhập vẫn nghiêng về xanh lá
                         )}>

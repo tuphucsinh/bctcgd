@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createAsset, type AssetInput } from "@/lib/actions";
+import { createAsset, adjustCashAmount, type AssetInput } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { AnimatedNumber, SpotlightCard, MagneticButton } from "@/components/ui/dashboard-cards";
 import { 
@@ -42,6 +42,7 @@ export function AssetClient({ initialAssets }: { initialAssets: Asset[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [updateCash, setUpdateCash] = useState(true);
   
   useEffect(() => {
     setIsMounted(true);
@@ -86,6 +87,9 @@ export function AssetClient({ initialAssets }: { initialAssets: Asset[] }) {
     try {
       const res = await createAsset(formData);
       if (res.success) {
+        if (updateCash && formData.purchase_price > 0 && formData.quantity > 0) {
+          await adjustCashAmount(-(formData.purchase_price * formData.quantity));
+        }
         setIsOpen(false);
         router.refresh();
       } else {
@@ -502,10 +506,22 @@ export function AssetClient({ initialAssets }: { initialAssets: Asset[] }) {
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[425px] rounded-3xl border border-white/10 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>Thêm Tài Sản Mới</DialogTitle>
+          <DialogHeader className="flex flex-row items-center justify-between pr-8">
+            <DialogTitle>Thêm Tài Sản</DialogTitle>
+            <div className="flex items-center gap-2 bg-blue-500/10 px-2.5 py-1.5 rounded-xl border border-blue-500/20">
+              <input 
+                type="checkbox" 
+                id="updateCash" 
+                checked={updateCash} 
+                onChange={(e) => setUpdateCash(e.target.checked)} 
+                className="w-4 h-4 rounded border-white/20 bg-background/50 accent-blue-500 cursor-pointer"
+              />
+              <Label htmlFor="updateCash" className="text-[10px] font-bold uppercase tracking-widest text-blue-400 cursor-pointer leading-none">
+                Update Cash
+              </Label>
+            </div>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+          <form onSubmit={handleSubmit} className="grid gap-4 py-4 md:max-h-none md:overflow-visible max-h-[85vh] overflow-y-auto pr-2 custom-scrollbar">
             <div className="grid gap-2">
               <Label htmlFor="name">Tên tài sản</Label>
               <Input 
@@ -609,10 +625,7 @@ export function AssetClient({ initialAssets }: { initialAssets: Asset[] }) {
               </div>
             </div>
 
-            <div className="grid gap-1 bg-blue-500/5 p-3 rounded-2xl border border-blue-500/10">
-              <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Tổng giá trị hiện tại</span>
-              <span className="text-lg font-black text-white">{new Intl.NumberFormat('vi-VN').format(formData.current_value)} đ</span>
-            </div>
+
 
             <div className="grid gap-2">
               <Label htmlFor="notes">Ghi chú</Label>
@@ -624,6 +637,8 @@ export function AssetClient({ initialAssets }: { initialAssets: Asset[] }) {
                 className="w-full rounded-xl bg-background border border-white/10 p-3 text-sm min-h-[60px] focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
+
+
 
             <Button type="submit" className="mt-2 w-full rounded-xl shadow-lg h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 active:scale-95 transition-all text-white font-bold" disabled={isLoading || !formData.name}>
               {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Xác nhận Lưu"}

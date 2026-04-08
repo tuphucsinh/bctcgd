@@ -212,7 +212,7 @@ export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
           color="rgba(249,115,22,0.15)"
           className="rounded-3xl border border-orange-500/10 bg-[#0a0a0a]/60 shadow-xl overflow-hidden relative"
         >
-          <div className="p-8 relative z-10 flex flex-col gap-4">
+          <div className="p-6 pl-4 relative z-10 flex flex-col items-start gap-4">
             <div className="flex items-center gap-3 relative z-20">
               <div className="rounded-xl bg-orange-500/10 p-2 text-orange-400 backdrop-blur-md border border-orange-500/20">
                 <ArrowDownRight className="h-6 w-6" />
@@ -243,7 +243,7 @@ export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
           color="rgba(16,185,129,0.15)"
           className="rounded-3xl border border-emerald-500/10 bg-[#0a0a0a]/60 shadow-xl overflow-hidden relative"
         >
-          <div className="p-8 relative z-10 flex flex-col gap-4">
+          <div className="p-6 pl-4 relative z-10 flex flex-col items-start gap-4">
             <div className="flex items-center gap-3 relative z-20">
               <div className="rounded-xl bg-emerald-500/10 p-2 text-emerald-400 backdrop-blur-md border border-emerald-500/20">
                 <ArrowUpRight className="h-6 w-6" />
@@ -535,7 +535,12 @@ export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-14 rounded-2xl bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-[0.98]"
+                className={cn(
+                  "w-full h-14 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-[0.98]",
+                  formData.type === 'PAYABLE'
+                    ? "bg-orange-500 text-white hover:bg-orange-400 shadow-orange-500/20"
+                    : "bg-emerald-500 text-white hover:bg-emerald-400 shadow-emerald-500/20"
+                )}
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

@@ -5,6 +5,7 @@ import { Banknote, TrendingUp, TrendingDown, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AnimatedNumber, SpotlightCard, MagneticButton } from "@/components/ui/dashboard-cards";
 import { TransactionModal } from "@/components/ui/transaction-modal";
+import { CashUpdateModal } from "@/components/ui/cash-update-modal";
 import { cn } from "@/lib/utils";
 
 interface MetricsRowProps {
@@ -34,19 +35,35 @@ export function MetricsRow({ currentUser, loading, cash, income, expense, goals 
           </svg>
         </div>
 
-        <div className="p-6 flex flex-col gap-4 relative z-10">
-          <div className="flex items-center gap-3">
-            <motion.div 
-              whileHover={{ scale: 1.1, rotate: [-2, 2, -2] }}
-              className="rounded-xl bg-blue-500/10 p-2 text-blue-400 backdrop-blur-md border border-blue-500/20"
-            >
-              <Banknote className="h-5 w-5" />
-            </motion.div>
-            <h2 className="text-2xl lg:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-100 to-white/70">
-              {loading ? "---" : <AnimatedNumber value={cash} />}
-            </h2>
+        <div className="p-6 relative z-10">
+          <div className="flex items-center justify-between relative z-20">
+            <div className="flex items-center gap-3">
+              <motion.div 
+                whileHover={{ scale: 1.1, rotate: [-2, 2, -2] }}
+                className="rounded-xl bg-blue-500/10 p-2 text-blue-400 backdrop-blur-md border border-blue-500/20"
+              >
+                <Banknote className="h-5 w-5" />
+              </motion.div>
+              <h2 className="text-2xl lg:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-100 to-white/70">
+                {loading ? "---" : <AnimatedNumber value={cash} />}
+              </h2>
+            </div>
           </div>
-          <div>
+          <div 
+            className="absolute top-1.5 right-1.5 z-30"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CashUpdateModal currentCash={cash}>
+              <MagneticButton>
+                <button 
+                  className="h-12 w-12 flex items-center justify-center rounded-2xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all active:scale-95 shadow-sm border border-blue-500/20"
+                >
+                  <Plus className="h-6 w-6" />
+                </button>
+              </MagneticButton>
+            </CashUpdateModal>
+          </div>
+          <div className="mt-4">
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-background/50 px-2 py-0.5 rounded-full inline-block border border-white/5">Tiền mặt</span>
           </div>
         </div>

@@ -74,7 +74,7 @@ export function TransactionModal({
     loadCats();
   }, []);
 
-  const incomeOrder = ["Lương", "Thưởng", "Bất động sản", "Cổ tức", "Tài chính", "Khác"];
+  const incomeOrder = ["Lương", "Thưởng", "Bất động sản", "Crypto", "Vàng", "Tài chính", "Khác"];
   const expenseOrder = ["Ăn uống", "Di chuyển", "Hóa đơn", "Giao tế", "Giải trí", "Đồ dùng", "Sức khỏe", "Học hành", "Con cái", "Khác"];
 
   const filteredCategories = categories

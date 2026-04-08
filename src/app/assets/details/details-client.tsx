@@ -28,6 +28,7 @@ function AssetDetailsContent({ allAssets }: { allAssets: Asset[] }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const type = searchParams.get("type");
+  const userId = searchParams.get("userId") || "gd";
 
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,6 +65,15 @@ function AssetDetailsContent({ allAssets }: { allAssets: Asset[] }) {
        });
        if (res.success) {
          setIsModalOpen(false);
+         setSelectedAsset({
+           ...selectedAsset,
+           name: editForm.name || selectedAsset.name,
+           quantity: editForm.quantity || selectedAsset.quantity,
+           purchase_price: editForm.purchase_price || selectedAsset.purchase_price,
+           current_price: editForm.current_price || selectedAsset.current_price,
+           current_value: (editForm.quantity || selectedAsset.quantity) * (editForm.current_price || selectedAsset.current_price),
+           notes: editForm.notes
+         });
          router.refresh();
        } else {
          alert("Lỗi: " + res.error);
@@ -78,16 +88,33 @@ function AssetDetailsContent({ allAssets }: { allAssets: Asset[] }) {
 
   const handleSell = async () => {
     if (!selectedAsset) return;
+    if (selectedAsset.name === 'Tiền mặt') {
+      alert("Không thể xóa tài sản mặc định.");
+      return;
+    }
     setIsLoading(true);
     try {
        const currentAssetData = {
          quantity: selectedAsset.quantity,
          current_price: selectedAsset.current_price,
-         current_value: selectedAsset.current_value
+         current_value: selectedAsset.current_value,
+         purchase_price: selectedAsset.purchase_price,
+         type: selectedAsset.type,
+         name: selectedAsset.name
        };
-       const res = await sellAsset(selectedAsset.id, sellForm.quantity, sellForm.price, currentAssetData);
+       const res = await sellAsset(selectedAsset.id, sellForm.quantity, sellForm.price, currentAssetData, userId);
        if (res.success) {
          setIsModalOpen(false);
+         // Update local state so UI responds immediately
+         if (sellForm.quantity >= selectedAsset.quantity) {
+           setSelectedAsset(null);
+         } else {
+           setSelectedAsset({
+             ...selectedAsset,
+             quantity: selectedAsset.quantity - sellForm.quantity,
+             current_value: (selectedAsset.quantity - sellForm.quantity) * selectedAsset.current_price
+           });
+         }
          router.refresh();
        } else {
          alert("Lỗi: " + res.error);
@@ -103,6 +130,10 @@ function AssetDetailsContent({ allAssets }: { allAssets: Asset[] }) {
   const filteredAssets = allAssets.filter(a => {
     if (type === 'FINANCE') return ['CASH', 'BANK', 'SAVINGS', 'INVESTMENT', 'FINANCE'].includes(a.type);
     return a.type === type;
+  }).sort((a, b) => {
+    if (a.name === 'Tiền mặt') return -1;
+    if (b.name === 'Tiền mặt') return 1;
+    return 0;
   });
 
   const getHeaderInfo = () => {
@@ -174,8 +205,8 @@ function AssetDetailsContent({ allAssets }: { allAssets: Asset[] }) {
                     <td className="p-5">
                       <div className="flex items-center gap-3">
                         <span 
-                          onClick={() => handleOpenModal(asset)}
-                          className={`flex items-center gap-1.5 text-sm font-bold ${info.color} cursor-pointer uppercase tracking-tight transition-all duration-300 hover:brightness-125 hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.1)] whitespace-nowrap`}
+                          onClick={() => asset.name !== 'Tiền mặt' && handleOpenModal(asset)}
+                          className={`flex items-center gap-1.5 text-sm font-bold ${info.color} uppercase tracking-tight transition-all duration-300 whitespace-nowrap ${asset.name !== 'Tiền mặt' ? 'cursor-pointer hover:brightness-125 hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]' : ''}`}
                         >
                           {asset.name}
                         </span>
@@ -185,19 +216,19 @@ function AssetDetailsContent({ allAssets }: { allAssets: Asset[] }) {
                       </div>
                     </td>
                     <td className={`p-5 text-center font-mono text-sm text-white/80 px-2 ${type === 'REAL_ESTATE' ? 'hidden md:table-cell' : ''}`}>
-                      {asset.quantity.toLocaleString('vi-VN', { maximumFractionDigits: 6 })}
+                      {asset.name === 'Tiền mặt' ? '—' : asset.quantity.toLocaleString('vi-VN', { maximumFractionDigits: 6 })}
                     </td>
                     <td className="p-5 text-center font-mono text-sm text-white/60 hidden md:table-cell">
-                      {asset.purchase_price.toLocaleString('vi-VN')}
+                      {asset.name === 'Tiền mặt' ? '—' : asset.purchase_price.toLocaleString('vi-VN')}
                     </td>
                     <td className="p-5 text-center font-mono text-sm text-white/60 hidden md:table-cell">
-                      {asset.current_price.toLocaleString('vi-VN')}
+                      {asset.name === 'Tiền mặt' ? '—' : asset.current_price.toLocaleString('vi-VN')}
                     </td>
                     <td className="p-5 text-center font-mono text-sm font-bold text-white">
                       {asset.current_value.toLocaleString('vi-VN')}
                     </td>
-                    <td className={`p-5 text-center font-mono text-sm font-bold hidden md:table-cell ${asset.current_value - (asset.quantity * asset.purchase_price) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {(asset.current_value - (asset.quantity * asset.purchase_price)).toLocaleString('vi-VN')}
+                    <td className={`p-5 text-center font-mono text-sm font-bold hidden md:table-cell ${asset.name === 'Tiền mặt' ? 'text-white/30' : (asset.current_value - (asset.quantity * asset.purchase_price) >= 0 ? 'text-emerald-400' : 'text-rose-400')}`}>
+                      {asset.name === 'Tiền mặt' ? '—' : (asset.current_value - (asset.quantity * asset.purchase_price)).toLocaleString('vi-VN')}
                     </td>
                     <td className="p-5 text-center hidden md:table-cell">
                       <span className="text-xs text-white/30 italic line-clamp-1 mx-auto max-w-[200px]">{asset.notes || "—"}</span>
@@ -222,7 +253,10 @@ function AssetDetailsContent({ allAssets }: { allAssets: Asset[] }) {
           <Tabs defaultValue="edit" className="w-full mt-2">
             <TabsList className="grid w-full grid-cols-2 bg-white/5 p-1 rounded-xl">
               <TabsTrigger value="edit" className="rounded-lg text-xs font-bold uppercase tracking-wider data-[state=active]:bg-blue-500 data-[state=active]:text-white">Cập nhật</TabsTrigger>
-              <TabsTrigger value="sell" className="rounded-lg text-xs font-bold uppercase tracking-wider data-[state=active]:bg-rose-500 data-[state=active]:text-white">Bán / Tất toán</TabsTrigger>
+              <TabsTrigger value="sell" disabled={selectedAsset?.name === 'Tiền mặt'} className="rounded-lg text-xs font-bold uppercase tracking-wider data-[state=active]:bg-rose-500 data-[state=active]:text-white disabled:opacity-50 disabled:cursor-not-allowed">
+                <span className="hidden md:inline">Bán / Tất toán</span>
+                <span className="md:hidden">Bán</span>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="edit" className="space-y-4 mt-6">

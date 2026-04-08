@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { z } from 'zod';
 import { handleActionError, ActionResult, getOwnerFilter } from './helpers';
+import { adjustCashAmount } from './assets';
 
 const TransactionSchema = z.object({
   amount: z.number().positive("Số tiền phải lớn hơn 0"),
@@ -43,6 +44,13 @@ export async function addTransaction(input: TransactionInput): Promise<ActionRes
       .select();
 
     if (error) throw error;
+    
+    if (input.type === 'INCOME') {
+      await adjustCashAmount(input.amount);
+    } else if (input.type === 'EXPENSE') {
+      await adjustCashAmount(-input.amount);
+    }
+
     return { success: true, data };
   } catch (error) {
     return handleActionError('addTransaction', error);

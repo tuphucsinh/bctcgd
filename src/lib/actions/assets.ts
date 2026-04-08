@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from '@/utils/supabase/server';
-import { handleActionError, ActionResult } from './helpers';
+import { handleActionError, ActionResult, getOwnerFilter } from './helpers';
 
 export type AssetInput = {
   name: string;
@@ -89,7 +89,8 @@ export async function sellAsset(
   id: string, 
   sellQuantity: number, 
   sellPrice: number, 
-  currentAsset: { quantity: number, current_price: number, current_value: number }
+  currentAsset: { quantity: number, current_price: number, current_value: number, purchase_price?: number, type?: string, name?: string },
+  userId?: string
 ): Promise<ActionResult> {
   try {
     const remainingQty = currentAsset.quantity - sellQuantity;
@@ -114,8 +115,160 @@ export async function sellAsset(
       .select();
 
     if (error) throw error;
+
+    // Get category for transaction based on asset type
+    let catName = 'Khác';
+    if (currentAsset.type === 'REAL_ESTATE') catName = 'Bất động sản';
+    else if (currentAsset.type === 'CRYPTO') catName = 'Crypto';
+    else if (currentAsset.type === 'GOLD') catName = 'Vàng';
+    else if (currentAsset.type === 'FINANCE') catName = 'Tài chính';
+
+    const { data: catData } = await supabase.from('categories').select('id').eq('name', catName).eq('type', 'INCOME').single();
+    const category_id = catData?.id || null;
+
+    // Determine owner from local context if possible, default 'HIEU' (via helpers)
+    const owner = getOwnerFilter(userId || 'gd', false); // The schema has a constraint check_owner_no_joint
+
+    // Calculate profit/loss
+    const purchasePrice = currentAsset.purchase_price || 0;
+    const profitOrLoss = sellQuantity * (sellPrice - purchasePrice);
+
+    // Use Admin Client to bypass RLS for transaction logs
+    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+    const supabaseAdmin = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Insert transaction
+    const { error: insertError } = await supabaseAdmin.from('transactions').insert({
+      amount: profitOrLoss,
+      type: 'INCOME',
+      category_id: category_id,
+      note: `Bán tài sản: ${currentAsset.name || 'Tài sản'} (${sellQuantity} đơn vị)`,
+      owner: owner,
+      date: new Date().toISOString().split('T')[0]
+    });
+
+    if (insertError) {
+      console.error('SELL_ASSET_INSERT_ERROR:', insertError);
+      throw insertError;
+    }
+
+    // Add total cash from the sale
+    const totalCashAdded = sellQuantity * sellPrice;
+    if (totalCashAdded > 0) {
+      // Must implement adjustCashAmount logic inline or wait, adjustCashAmount is at the end of the file.
+      // But it's defined in the same file! We can call it:
+      await adjustCashAmount(totalCashAdded);
+    }
+
     return { success: true, data };
   } catch (error) {
     return handleActionError('sellAsset', error);
   }
 }
+
+export async function updateCashAmount(amount: number): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+    
+    const { data: existing } = await supabase
+      .from('assets')
+      .select('id')
+      .eq('type', 'FINANCE')
+      .eq('name', 'Tiền mặt')
+      .limit(1)
+      .single();
+
+    if (existing) {
+      const { data, error } = await supabase
+        .from('assets')
+        .update({ 
+          current_value: amount,
+          purchase_price: amount
+        })
+        .eq('id', existing.id)
+        .select();
+
+      if (error) throw error;
+      return { success: true, data };
+    } else {
+      const toInsert = {
+        name: 'Tiền mặt',
+        type: 'FINANCE',
+        asset_class: 'LIQUID',
+        quantity: 1,
+        current_price: amount,
+        purchase_price: amount,
+        current_value: amount,
+        status: 'ACTIVE'
+      };
+
+      const { data, error } = await supabase
+        .from('assets')
+        .insert([toInsert])
+        .select();
+
+      if (error) throw error;
+      return { success: true, data };
+    }
+  } catch (error) {
+    return handleActionError('updateCashAmount', error);
+  }
+}
+
+export async function adjustCashAmount(delta: number): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+    
+    // get current 
+    const { data: existing } = await supabase
+      .from('assets')
+      .select('id, current_value')
+      .eq('type', 'FINANCE')
+      .eq('name', 'Tiền mặt')
+      .limit(1)
+      .single();
+
+    if (existing) {
+      const newAmount = Number(existing.current_value || 0) + delta;
+      const { data, error } = await supabase
+        .from('assets')
+        .update({ 
+          current_value: newAmount,
+          current_price: newAmount,
+          purchase_price: newAmount
+        })
+        .eq('id', existing.id)
+        .select();
+
+      if (error) throw error;
+      return { success: true, data };
+    } else {
+      // If it doesn't exist, create it with delta as initial amount
+      const newAmount = delta;
+      const toInsert = {
+        name: 'Tiền mặt',
+        type: 'FINANCE',
+        asset_class: 'LIQUID',
+        quantity: 1,
+        current_price: newAmount,
+        purchase_price: newAmount,
+        current_value: newAmount,
+        status: 'ACTIVE'
+      };
+
+      const { data, error } = await supabase
+        .from('assets')
+        .insert([toInsert])
+        .select();
+
+      if (error) throw error;
+      return { success: true, data };
+    }
+  } catch (error) {
+    return handleActionError('adjustCashAmount', error);
+  }
+}
+

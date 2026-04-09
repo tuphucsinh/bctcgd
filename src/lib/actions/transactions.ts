@@ -94,17 +94,21 @@ export async function getCategories() {
   }
 }
 
-export async function getIncomeTransactions(userId: string) {
+export async function getIncomeTransactions(userId: string, page: number = 1, limit: number = 50) {
   try {
     const owners = getOwnerFilter(userId, true) as string[];
     const supabase = await createClient();
     
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
     const { data, error } = await supabase
       .from('transactions')
       .select('*, categories(name, icon, is_passive)')
       .eq('type', 'INCOME')
       .in('owner', owners)
-      .order('date', { ascending: false });
+      .order('date', { ascending: false })
+      .range(from, to);
 
     if (error) throw error;
     return data;
@@ -114,17 +118,21 @@ export async function getIncomeTransactions(userId: string) {
   }
 }
 
-export async function getExpenseTransactions(userId: string) {
+export async function getExpenseTransactions(userId: string, page: number = 1, limit: number = 50) {
   try {
     const owners = getOwnerFilter(userId, true) as string[];
     const supabase = await createClient();
+
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
 
     const { data, error } = await supabase
       .from('transactions')
       .select('*, categories(name, icon)')
       .eq('type', 'EXPENSE')
       .in('owner', owners)
-      .order('date', { ascending: false });
+      .order('date', { ascending: false })
+      .range(from, to);
 
     if (error) throw error;
     return data;

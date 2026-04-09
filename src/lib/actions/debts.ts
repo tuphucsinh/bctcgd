@@ -16,13 +16,17 @@ export type DebtInput = {
   userId?: string;
 };
 
-export async function getDebts() {
+export async function getDebts(page: number = 1, limit: number = 50) {
   const supabase = await createClient();
   try {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
     const { data, error } = await supabase
       .from('debts')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(from, to);
       
     if (error) throw error;
     return data;

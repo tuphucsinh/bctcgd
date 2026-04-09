@@ -26,20 +26,40 @@ export function TransactionDetailsClient({ initialUserId }: { initialUserId: str
   const type = searchParams.get("type") as "INCOME" | "EXPENSE" || "INCOME";
 
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [activeUserId, setActiveUserId] = useState(initialUserId.toLowerCase());
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const LIMIT = 50;
 
-  const fetchData = useCallback(async (id: string, trxType: "INCOME" | "EXPENSE") => {
-    setLoading(true);
+  const fetchData = useCallback(async (id: string, trxType: "INCOME" | "EXPENSE", pageNum: number, append: boolean = false) => {
+    if (append) setLoadingMore(true);
+    else setLoading(true);
+    
     try {
       const data = trxType === "INCOME"
-        ? await getIncomeTransactions(id)
-        : await getExpenseTransactions(id);
-      setTransactions(data as Transaction[] || []);
+        ? await getIncomeTransactions(id, pageNum, LIMIT)
+        : await getExpenseTransactions(id, pageNum, LIMIT);
+        
+      const results = (data as Transaction[]) || [];
+      
+      if (results.length < LIMIT) {
+        setHasMore(false);
+      } else {
+        setHasMore(true);
+      }
+
+      if (append) {
+        setTransactions(prev => [...prev, ...results]);
+      } else {
+        setTransactions(results);
+      }
     } catch (err) {
       console.error(`Lỗi khi tải chi tiết ${trxType === "INCOME" ? "thu nhập" : "chi tiêu"}:`, err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, []);
 
@@ -48,8 +68,17 @@ export function TransactionDetailsClient({ initialUserId }: { initialUserId: str
   }, [initialUserId]);
 
   useEffect(() => {
-    fetchData(activeUserId, type);
+    setPage(1);
+    setHasMore(true);
+    fetchData(activeUserId, type, 1, false);
   }, [activeUserId, type, fetchData]);
+
+  const loadMore = () => {
+    if (!hasMore || loadingMore) return;
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchData(activeUserId, type, nextPage, true);
+  };
 
   const formatMoneyRaw = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -249,6 +278,25 @@ export function TransactionDetailsClient({ initialUserId }: { initialUserId: str
                     ));
                   })()}
                 </AnimatePresence>
+
+                {hasMore && (
+                  <div className="flex justify-center pt-6 pb-2">
+                    <button
+                      onClick={loadMore}
+                      disabled={loadingMore}
+                      className="px-6 py-2.5 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-white/70 text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {loadingMore ? (
+                        <>
+                          <div className={cn("w-4 h-4 border-2 border-t-transparent rounded-full animate-spin", isIncome ? "border-emerald-500" : "border-orange-500")} />
+                          Đang tải...
+                        </>
+                      ) : (
+                        "Tải thêm"
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

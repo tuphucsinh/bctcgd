@@ -37,14 +37,23 @@ export async function getAssets() {
 
 export async function createAsset(input: AssetInput): Promise<ActionResult> {
   try {
+    const quantity = Number(input.quantity);
+    const purchasePrice = Number(input.purchase_price);
+    const currentPrice = Number(input.current_price);
+    const currentValue = Number(input.current_value);
+
+    if (isNaN(quantity) || isNaN(purchasePrice) || isNaN(currentPrice) || isNaN(currentValue)) {
+      throw new Error("Dữ liệu dạng số không hợp lệ");
+    }
+
     const toInsert = {
       name: input.name,
       type: input.type,
       asset_class: input.asset_class,
-      quantity: Number(input.quantity) || 0,
-      purchase_price: Number(input.purchase_price) || 0, 
-      current_price: Number(input.current_price) || 0,
-      current_value: Number(input.current_value) || 0, 
+      quantity: quantity || 0,
+      purchase_price: purchasePrice || 0, 
+      current_price: currentPrice || 0,
+      current_value: currentValue || 0, 
       notes: input.notes || "",
       created_at: input.created_at ? new Date(input.created_at).toISOString() : new Date().toISOString(),
       status: 'ACTIVE'
@@ -141,25 +150,25 @@ export async function sellAsset(
     );
 
     // Insert transaction
-    const { error: insertError } = await supabaseAdmin.from('transactions').insert({
-      amount: profitOrLoss,
-      type: 'INCOME',
-      category_id: category_id,
-      note: `Bán tài sản: ${currentAsset.name || 'Tài sản'} (${sellQuantity} đơn vị)`,
-      owner: owner,
-      date: new Date().toISOString().split('T')[0]
-    });
+    if (profitOrLoss !== 0) {
+      const { error: insertError } = await supabaseAdmin.from('transactions').insert({
+        amount: profitOrLoss,
+        type: 'INCOME',
+        category_id: category_id,
+        note: `${profitOrLoss > 0 ? 'Lãi' : 'Lỗ'} bán tài sản: ${currentAsset.name || 'Tài sản'} (${sellQuantity} đơn vị) | Giá bán: ${sellPrice}`,
+        owner: owner,
+        date: new Date().toISOString().split('T')[0]
+      });
 
-    if (insertError) {
-      console.error('SELL_ASSET_INSERT_ERROR:', insertError);
-      throw insertError;
+      if (insertError) {
+        console.error('SELL_ASSET_INSERT_ERROR:', insertError);
+        throw insertError;
+      }
     }
 
     // Add total cash from the sale
     const totalCashAdded = sellQuantity * sellPrice;
     if (totalCashAdded > 0) {
-      // Must implement adjustCashAmount logic inline or wait, adjustCashAmount is at the end of the file.
-      // But it's defined in the same file! We can call it:
       await adjustCashAmount(totalCashAdded);
     }
 
@@ -169,30 +178,32 @@ export async function sellAsset(
   }
 }
 
-export async function updateCashAmount(amount: number): Promise<ActionResult> {
+export async function updateCashAmount(amount: number, userId?: string): Promise<ActionResult> {
   try {
     const supabase = await createClient();
     
     const { data: existing } = await supabase
       .from('assets')
-      .select('id')
+      .select('id, current_value')
       .eq('type', 'FINANCE')
       .eq('name', 'Tiền mặt')
       .limit(1)
       .single();
 
+    let delta = amount;
+
     if (existing) {
-      const { data, error } = await supabase
+      delta = amount - Number(existing.current_value || 0);
+
+      const { error } = await supabase
         .from('assets')
         .update({ 
           current_value: amount,
           purchase_price: amount
         })
-        .eq('id', existing.id)
-        .select();
+        .eq('id', existing.id);
 
       if (error) throw error;
-      return { success: true, data };
     } else {
       const toInsert = {
         name: 'Tiền mặt',
@@ -205,14 +216,30 @@ export async function updateCashAmount(amount: number): Promise<ActionResult> {
         status: 'ACTIVE'
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('assets')
-        .insert([toInsert])
-        .select();
+        .insert([toInsert]);
 
       if (error) throw error;
-      return { success: true, data };
     }
+
+    if (delta !== 0) {
+      const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+      const supabaseAdmin = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      
+      await supabaseAdmin.from('transactions').insert([{
+        amount: Math.abs(delta),
+        type: 'ADJUSTMENT',
+        note: `điều chỉnh tiền mặt: ${delta > 0 ? 'Tăng' : 'Giảm'}`,
+        owner: getOwnerFilter(userId || 'gd', false),
+        date: new Date().toISOString().split('T')[0]
+      }]);
+    }
+
+    return { success: true, data: null };
   } catch (error) {
     return handleActionError('updateCashAmount', error);
   }

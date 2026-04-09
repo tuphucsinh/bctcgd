@@ -16,9 +16,11 @@ import { updateCashAmount } from "@/lib/actions";
 export function CashUpdateModal({
   children,
   currentCash,
+  userId,
 }: {
   children: React.ReactNode;
   currentCash: number;
+  userId?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -53,7 +55,7 @@ export function CashUpdateModal({
     setLoading(true);
     
     try {
-      const result = await updateCashAmount(numericAmount);
+      const result = await updateCashAmount(numericAmount, userId);
 
       if (!result.success) {
         toast.error(result.error || "Không thể cập nhật Tiền mặt");

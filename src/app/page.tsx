@@ -126,6 +126,15 @@ function Dashboard() {
         </div>
       </header>
 
+      {data?.hasError && (
+        <div className="flex items-center gap-2 p-4 mb-4 text-sm text-red-200 border bg-red-500/10 border-red-500/20 rounded-2xl">
+          <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <p>Lỗi đồng bộ dữ liệu. Kết nối máy chủ bị gián đoạn, một số chỉ số (ví dụ: Thu nhập / Chi phí) đang hiển thị 0 VND.</p>
+        </div>
+      )}
+
       {!isMounted ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="h-32 rounded-3xl bg-white/5 animate-pulse" />
@@ -140,7 +149,10 @@ function Dashboard() {
             cash={cash}
             income={income}
             expense={expense}
-            goals={GOALS.all}
+            goals={{
+              income: data?.targetIncome || 35000000,
+              expense: data?.targetSpending || 22000000
+            }}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12 mt-4">

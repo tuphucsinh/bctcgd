@@ -20,7 +20,7 @@ export function getOwnerFilter(userId: string, returnArray = true): string | str
   if (!returnArray) {
     const ownerMap: Record<string, string> = { 
       hieu: 'HIEU', 
-      ly: 'LY'
+      ly: 'LY',
     };
     return ownerMap[normalizedId] || 'HIEU';
   }
@@ -29,8 +29,7 @@ export function getOwnerFilter(userId: string, returnArray = true): string | str
     hieu: ['HIEU'],
     ly: ['LY'],
     all: ['HIEU', 'LY'],
-    gd: ['HIEU', 'LY'],
-    joint: ['HIEU', 'LY']
+    gd: ['HIEU', 'LY']
   };
   return ownerMapArray[normalizedId] || ownerMapArray['all'];
 }

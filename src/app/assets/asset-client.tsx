@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createAsset, adjustCashAmount, type AssetInput } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { AnimatedNumber, SpotlightCard, MagneticButton } from "@/components/ui/dashboard-cards";
+import { formatNumber, parseNumber } from "@/lib/utils";
 import { 
   ResponsiveContainer, 
   PieChart, 
@@ -188,7 +189,8 @@ export function AssetClient({ initialAssets }: { initialAssets: Asset[] }) {
         {/* 1. Tổng tài sản (Blue) */}
         <SpotlightCard 
           color="rgba(59,130,246,0.15)"
-          className="rounded-3xl border border-blue-500/10 bg-[#0a0a0a]/60 shadow-xl"
+          className="rounded-3xl border border-blue-500/10 bg-[#0a0a0a]/60 shadow-xl cursor-pointer hover:bg-blue-500/5 transition-colors"
+          onClick={() => router.push('/assets/history')}
         >
           {/* Sóng chìm */}
           <div className="absolute bottom-0 left-0 right-0 h-16 opacity-[0.05] pointer-events-none overflow-hidden">
@@ -587,9 +589,10 @@ export function AssetClient({ initialAssets }: { initialAssets: Asset[] }) {
                 <Label htmlFor="purchase_price">Giá mua (đơn vị)</Label>
                 <Input 
                   id="purchase_price" 
-                  type="number" 
-                  value={formData.purchase_price || ""}
-                  onChange={(e) => setFormData({...formData, purchase_price: Number(e.target.value)})}
+                  type="text" 
+                  inputMode="numeric"
+                  value={formatNumber(formData.purchase_price || 0)}
+                  onChange={(e) => setFormData({...formData, purchase_price: Number(parseNumber(e.target.value))})}
                   placeholder="0 đ" 
                   className="rounded-xl font-mono border-white/10"
                 />
@@ -601,10 +604,11 @@ export function AssetClient({ initialAssets }: { initialAssets: Asset[] }) {
                 <Label htmlFor="current_price" className="truncate">Đơn giá hiện tại</Label>
                 <Input 
                   id="current_price" 
-                  type="number" 
-                  value={formData.current_price || ""}
+                  type="text" 
+                  inputMode="numeric"
+                  value={formatNumber(formData.current_price || 0)}
                   onChange={(e) => {
-                    const price = Number(e.target.value);
+                    const price = Number(parseNumber(e.target.value));
                     setFormData({...formData, current_price: price, current_value: calculateTotal(formData.quantity, price)});
                   }}
                   required 

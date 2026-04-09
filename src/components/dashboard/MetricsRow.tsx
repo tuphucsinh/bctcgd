@@ -53,7 +53,7 @@ export function MetricsRow({ currentUser, loading, cash, income, expense, goals 
             className="absolute top-1.5 right-1.5 z-30"
             onClick={(e) => e.stopPropagation()}
           >
-            <CashUpdateModal currentCash={cash}>
+            <CashUpdateModal currentCash={cash} userId={currentUser?.id}>
               <MagneticButton>
                 <button 
                   className="h-12 w-12 flex items-center justify-center rounded-2xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all active:scale-95 shadow-sm border border-blue-500/20"

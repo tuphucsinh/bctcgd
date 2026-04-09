@@ -1,12 +1,13 @@
 import { Suspense } from "react";
 import { TransactionDetailsClient } from "./details-client";
 
-export default function TransactionDetailsPage({
+export default async function TransactionDetailsPage({
   searchParams,
 }: {
-  searchParams: { user?: string };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const userId = searchParams.user || "all";
+  const resolvedParams = await searchParams;
+  const userId = (resolvedParams.user as string) || "all";
 
   return (
     <Suspense fallback={

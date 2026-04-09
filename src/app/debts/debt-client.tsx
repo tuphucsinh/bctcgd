@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, cn, formatNumber, parseNumber } from "@/lib/utils";
 import { ArrowDownRight, ArrowUpRight, Plus, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,8 @@ interface Debt {
   interest_rate?: number;
   monthly_payment_amount?: number;
   status?: string;
+  term?: 'SHORT' | 'LONG';
+  owner?: string;
 }
 
 export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
@@ -56,7 +58,9 @@ export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
     remaining_principal: 0,
     interest_rate: 0,
     monthly_payment_amount: 0,
-    term: 'LONG_TERM'
+    term: 'LONG_TERM',
+    update_cash: true,
+    userId: userId
   });
 
   const [editingDebtId, setEditingDebtId] = useState<string | null>(null);
@@ -73,10 +77,11 @@ export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
 
     try {
       const result = editingDebtId 
-        ? await updateDebt(editingDebtId, formData)
+        ? await updateDebt(editingDebtId, { ...formData, userId })
         : await createDebt({
             ...formData,
-            remaining_principal: formData.original_principal // Khi tạo mới, gốc còn lại = gốc ban đầu
+            remaining_principal: formData.original_principal, // Khi tạo mới, gốc còn lại = gốc ban đầu
+            userId
           });
 
       if (result.success) {
@@ -187,7 +192,9 @@ export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
         remaining_principal: debt.remaining_principal,
         interest_rate: debt.interest_rate || 0,
         monthly_payment_amount: debt.monthly_payment_amount || 0,
-        term: 'LONG_TERM' // Map term correctly if needed
+        term: debt.term === 'SHORT' ? 'SHORT_TERM' : 'LONG_TERM',
+        update_cash: false,
+        userId: userId
       });
     } else {
       setEditingDebtId(null);
@@ -198,7 +205,9 @@ export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
         remaining_principal: 0,
         interest_rate: 0,
         monthly_payment_amount: 0,
-        term: 'LONG_TERM'
+        term: 'LONG_TERM',
+        update_cash: true,
+        userId: userId
       });
     }
     setIsOpen(true);
@@ -210,7 +219,8 @@ export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <SpotlightCard 
           color="rgba(249,115,22,0.15)"
-          className="rounded-3xl border border-orange-500/10 bg-[#0a0a0a]/60 shadow-xl overflow-hidden relative"
+          className="rounded-3xl border border-orange-500/10 bg-[#0a0a0a]/60 shadow-xl overflow-hidden relative cursor-pointer hover:bg-orange-500/5 transition-colors"
+          onClick={() => router.push('/debts/history?type=LIA')}
         >
           <div className="p-6 pl-4 relative z-10 flex flex-col items-start gap-4">
             <div className="flex items-center gap-3 relative z-20">
@@ -241,7 +251,8 @@ export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
 
         <SpotlightCard 
           color="rgba(16,185,129,0.15)"
-          className="rounded-3xl border border-emerald-500/10 bg-[#0a0a0a]/60 shadow-xl overflow-hidden relative"
+          className="rounded-3xl border border-emerald-500/10 bg-[#0a0a0a]/60 shadow-xl overflow-hidden relative cursor-pointer hover:bg-emerald-500/5 transition-colors"
+          onClick={() => router.push('/debts/history?type=REC')}
         >
           <div className="p-6 pl-4 relative z-10 flex flex-col items-start gap-4">
             <div className="flex items-center gap-3 relative z-20">
@@ -389,11 +400,24 @@ export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
       </div>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-md bg-zinc-950 border-white/5 p-8 rounded-[40px] shadow-2xl backdrop-blur-3xl">
+        <DialogContent className="max-w-md bg-zinc-950 border-white/5 p-8 rounded-3xl shadow-2xl backdrop-blur-3xl">
           <DialogHeader className="mb-6">
-            <DialogTitle className="text-xl font-bold text-white tracking-tight">
-              {editingDebtId ? 'Chi tiết khoản nợ' : 'Thêm giao dịch'}
-            </DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-xl font-bold text-white tracking-tight">
+                {editingDebtId ? 'Chi tiết khoản nợ' : 'Thêm giao dịch'}
+              </DialogTitle>
+              {!editingDebtId && (
+                <label className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 cursor-pointer hover:bg-blue-500/20 transition-all">
+                  <input 
+                    type="checkbox" 
+                    checked={formData.update_cash ?? true}
+                    onChange={(e) => setFormData(prev => ({ ...prev, update_cash: e.target.checked }))}
+                    className="w-4 h-4 rounded-md border-blue-500/30 text-blue-500 bg-blue-500/20 shadow-sm focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                  />
+                  <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest whitespace-nowrap pt-[2px]">Update Cash</span>
+                </label>
+              )}
+            </div>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -444,9 +468,9 @@ export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
                     <Input
                       type="text"
                       inputMode="numeric"
-                      value={formData.remaining_principal ? new Intl.NumberFormat('vi-VN').format(formData.remaining_principal) : ''}
+                      value={formatNumber(formData.remaining_principal || 0)}
                       onChange={(e) => {
-                        const rawValue = e.target.value.replace(/\D/g, '');
+                        const rawValue = parseNumber(e.target.value);
                         setFormData({ ...formData, remaining_principal: Number(rawValue) });
                       }}
                       className="bg-orange-500/5 border-orange-500/20 h-12 px-5 rounded-2xl text-white focus:ring-0 focus:border-orange-500/40"
@@ -462,9 +486,9 @@ export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
                     <Input
                       type="text"
                       inputMode="numeric"
-                      value={formData.original_principal ? new Intl.NumberFormat('vi-VN').format(formData.original_principal) : ''}
+                      value={formatNumber(formData.original_principal || 0)}
                       onChange={(e) => {
-                        const rawValue = e.target.value.replace(/\D/g, '');
+                        const rawValue = parseNumber(e.target.value);
                         setFormData({ ...formData, original_principal: Number(rawValue) });
                       }}
                       className="bg-white/5 border-white/5 h-12 px-5 rounded-2xl text-white focus:ring-0 focus:border-white/20"
@@ -499,9 +523,9 @@ export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
                   <Input
                     type="text"
                     inputMode="numeric"
-                    value={new Intl.NumberFormat('vi-VN').format(formData.monthly_payment_amount || 0)}
+                    value={formatNumber(formData.monthly_payment_amount || 0)}
                     onChange={(e) => {
-                      const rawValue = e.target.value.replace(/\D/g, '');
+                      const rawValue = parseNumber(e.target.value);
                       setFormData({ ...formData, monthly_payment_amount: Number(rawValue) || 0 });
                     }}
                     className="bg-white/5 border-white/5 h-12 px-5 rounded-2xl text-white focus:ring-0 focus:border-white/20"
@@ -585,11 +609,13 @@ export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
               <div className="relative">
                 <Input
                   id="opAmount"
+                  type="text"
+                  inputMode="numeric"
                   placeholder="0"
-                  value={opModal.amount}
+                  value={formatNumber(opModal.amount)}
                   onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '');
-                    setOpModal(prev => ({ ...prev, amount: val.replace(/\B(?=(\d{3})+(?!\d))/g, '.') }));
+                    const val = parseNumber(e.target.value);
+                    setOpModal(prev => ({ ...prev, amount: val }));
                   }}
                   className="h-14 bg-white/5 border-white/10 rounded-2xl text-xl font-bold text-white pl-4"
                   autoFocus

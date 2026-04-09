@@ -14,7 +14,7 @@ import {
   ArrowDownCircle, 
   ArrowUpCircle,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber, parseNumber } from "@/lib/utils";
 import { addTransaction, getCategories } from "@/lib/actions";
 
 const users = [
@@ -225,10 +225,11 @@ export function TransactionModal({
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-sm">đ</span>
               <Input
                 id="amount"
-                type="number"
+                type="text"
+                inputMode="numeric"
                 placeholder="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                value={formatNumber(amount)}
+                onChange={(e) => setAmount(parseNumber(e.target.value))}
                 className="pl-8 h-12 text-xl font-bold bg-background border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50"
                 autoFocus
               />

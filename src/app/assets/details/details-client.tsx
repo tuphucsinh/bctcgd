@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { updateAsset, sellAsset } from "@/lib/actions";
+import { formatNumber, parseNumber } from "@/lib/utils";
 
 interface Asset {
   id: string;
@@ -274,6 +275,7 @@ function AssetDetailsContent({ allAssets }: { allAssets: Asset[] }) {
                     <Label className="text-white/60 text-xs font-bold uppercase tracking-widest">Số lượng</Label>
                     <Input 
                       type="number" 
+                      step="0.000001"
                       value={editForm.quantity} 
                       onChange={e => setEditForm({...editForm, quantity: Number(e.target.value)})} 
                       className="bg-white/5 border-white/10 text-white font-mono rounded-xl h-12 px-4 shadow-inner" 
@@ -282,9 +284,10 @@ function AssetDetailsContent({ allAssets }: { allAssets: Asset[] }) {
                   <div className="grid gap-2">
                      <Label className="text-white/60 text-xs font-bold uppercase tracking-widest">Giá mua</Label>
                      <Input 
-                       type="number" 
-                       value={editForm.purchase_price} 
-                       onChange={e => setEditForm({...editForm, purchase_price: Number(e.target.value)})} 
+                       type="text" 
+                       inputMode="numeric"
+                       value={formatNumber(editForm.purchase_price || 0)} 
+                       onChange={e => setEditForm({...editForm, purchase_price: Number(parseNumber(e.target.value))})} 
                        className="bg-white/5 border-white/10 text-white font-mono rounded-xl h-12 px-4 shadow-inner" 
                      />
                   </div>
@@ -293,9 +296,10 @@ function AssetDetailsContent({ allAssets }: { allAssets: Asset[] }) {
                     <Label className="text-white/60 text-xs font-bold uppercase tracking-widest">Đơn giá hiện tại</Label>
                     <div className="relative">
                       <Input 
-                        type="number" 
-                        value={editForm.current_price} 
-                        onChange={e => setEditForm({...editForm, current_price: Number(e.target.value)})} 
+                        type="text" 
+                        inputMode="numeric"
+                        value={formatNumber(editForm.current_price || 0)} 
+                        onChange={e => setEditForm({...editForm, current_price: Number(parseNumber(e.target.value))})} 
                         className="bg-blue-500/10 border-blue-500/30 text-blue-400 font-mono font-bold rounded-xl h-12 pl-4 pr-10 shadow-inner" 
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-400/50 font-bold text-xs">₫</span>
@@ -341,9 +345,10 @@ function AssetDetailsContent({ allAssets }: { allAssets: Asset[] }) {
                      <div className="grid gap-2">
                         <Label className="text-white/60 text-xs font-bold uppercase tracking-widest">Đơn giá bán</Label>
                         <Input 
-                          type="number" 
-                          value={sellForm.price} 
-                          onChange={e => setSellForm({...sellForm, price: Number(e.target.value)})} 
+                          type="text" 
+                          inputMode="numeric"
+                          value={formatNumber(sellForm.price)} 
+                          onChange={e => setSellForm({...sellForm, price: Number(parseNumber(e.target.value))})} 
                           className="bg-white/5 border-rose-500/30 text-rose-400 font-mono font-bold rounded-xl h-12 px-4 shadow-inner focus-visible:ring-rose-500" 
                         />
                      </div>

@@ -6,11 +6,11 @@ import { handleActionError, ActionResult, getOwnerFilter } from './helpers';
 import { adjustCashAmount } from './assets';
 
 const TransactionSchema = z.object({
-  amount: z.number().positive("Số tiền phải lớn hơn 0"),
+  amount: z.number(),
   category_id: z.string().uuid().optional().nullable(),
   note: z.string().max(500, "Ghi chú quá dài"),
   user_id: z.enum(['hieu', 'ly']),
-  type: z.enum(['INCOME', 'EXPENSE', 'DEBT_PAYMENT', 'ASSET_SELL']),
+  type: z.enum(['INCOME', 'EXPENSE', 'DEBT_PAYMENT', 'ASSET_SELL', 'ADJUSTMENT']),
 });
 
 export type TransactionInput = {
@@ -18,7 +18,7 @@ export type TransactionInput = {
   category_id?: string;
   note: string;
   user_id: string; // 'hieu' | 'ly'
-  type: 'INCOME' | 'EXPENSE' | 'DEBT_PAYMENT' | 'ASSET_SELL';
+  type: 'INCOME' | 'EXPENSE' | 'DEBT_PAYMENT' | 'ASSET_SELL' | 'ADJUSTMENT';
 };
 
 export async function addTransaction(input: TransactionInput): Promise<ActionResult> {

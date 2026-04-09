@@ -68,8 +68,8 @@ export function DebtClient({ initialDebts }: { initialDebts: Debt[] }) {
   const payables = filteredDebts.filter(d => d.debt_type === 'BORROW');
   const receivables = filteredDebts.filter(d => d.debt_type === 'LEND');
 
-  const totalPayable = payables.reduce((sum, d) => sum + Number(d.remaining_principal), 0);
-  const totalReceivable = receivables.reduce((sum, d) => sum + Number(d.remaining_principal), 0);
+  const totalPayable = payables.reduce((sum, d) => sum + Number(d.remaining_principal || 0), 0);
+  const totalReceivable = receivables.reduce((sum, d) => sum + Number(d.remaining_principal || 0), 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

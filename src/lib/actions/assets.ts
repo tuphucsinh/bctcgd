@@ -1,7 +1,9 @@
 "use server";
 
 import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/admin';
 import { handleActionError, ActionResult, getOwnerFilter } from './helpers';
+import { revalidatePath } from 'next/cache';
 
 export type AssetInput = {
   name: string;
@@ -70,6 +72,7 @@ export async function createAsset(input: AssetInput): Promise<ActionResult> {
       .select();
 
     if (error) throw error;
+    revalidatePath('/'); // Purge Cache (Pending Refactor #5)
     return { success: true, data };
   } catch (error) {
     return handleActionError('createAsset', error);
@@ -146,22 +149,15 @@ export async function sellAsset(
     const purchasePrice = currentAsset.purchase_price || 0;
     const profitOrLoss = sellQuantity * (sellPrice - purchasePrice);
 
-    // Use Admin Client to bypass RLS for transaction logs
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-    const supabaseAdmin = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    // Insert transaction
+    // Insert transaction using RPC to bypass RLS safely
     if (profitOrLoss !== 0) {
-      const { error: insertError } = await supabaseAdmin.from('transactions').insert({
-        amount: profitOrLoss,
-        type: 'INCOME',
-        category_id: category_id,
-        note: `${profitOrLoss > 0 ? 'Lãi' : 'Lỗ'} bán tài sản: ${currentAsset.name || 'Tài sản'} (${sellQuantity} đơn vị) | Giá bán: ${sellPrice}`,
-        owner: owner,
-        date: new Date().toISOString().split('T')[0]
+      const { error: insertError } = await supabase.rpc('log_transaction', {
+        p_amount: profitOrLoss,
+        p_type: 'INCOME',
+        p_category_id: category_id,
+        p_note: `${profitOrLoss > 0 ? 'Lãi' : 'Lỗ'} bán tài sản: ${currentAsset.name || 'Tài sản'} (${sellQuantity} đơn vị) | Giá bán: ${sellPrice}`,
+        p_owner: owner,
+        p_date: new Date().toISOString().split('T')[0]
       });
 
       if (insertError) {
@@ -173,9 +169,13 @@ export async function sellAsset(
     // Add total cash from the sale
     const totalCashAdded = sellQuantity * sellPrice;
     if (totalCashAdded > 0) {
-      await adjustCashAmount(totalCashAdded);
+      const resp = await adjustCashAmount(totalCashAdded); 
+      if (!resp.success) {
+        console.error('FAILED TO UPDATE CASH AMOUNT ALTHOUGH ASSET WAS SOLD', resp.error);
+      }
     }
 
+    revalidatePath('/'); // Purge Cache
     return { success: true, data };
   } catch (error) {
     return handleActionError('sellAsset', error);
@@ -184,15 +184,16 @@ export async function sellAsset(
 
 export async function updateCashAmount(amount: number, userId?: string): Promise<ActionResult> {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     
-    const { data: existing } = await supabase
+    const { data: existingArray, error: fetchErr } = await supabase
       .from('assets')
       .select('id, current_value')
-      .eq('type', 'FINANCE')
-      .eq('name', 'Tiền mặt')
-      .limit(1)
-      .single();
+      .eq('is_system_cash_account', true)
+      .limit(1);
+
+    if (fetchErr) throw fetchErr;
+    const existing = existingArray && existingArray.length > 0 ? existingArray[0] : null;
 
     let delta = amount;
 
@@ -203,7 +204,9 @@ export async function updateCashAmount(amount: number, userId?: string): Promise
         .from('assets')
         .update({ 
           current_value: amount,
-          purchase_price: amount
+          purchase_price: amount,
+          current_price: amount,
+          updated_at: new Date().toISOString()
         })
         .eq('id', existing.id);
 
@@ -217,7 +220,8 @@ export async function updateCashAmount(amount: number, userId?: string): Promise
         current_price: amount,
         purchase_price: amount,
         current_value: amount,
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        is_system_cash_account: true
       };
 
       const { error } = await supabase
@@ -228,21 +232,17 @@ export async function updateCashAmount(amount: number, userId?: string): Promise
     }
 
     if (delta !== 0) {
-      const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-      const supabaseAdmin = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
-      
-      await supabaseAdmin.from('transactions').insert([{
-        amount: Math.abs(delta),
-        type: 'ADJUSTMENT',
-        note: `điều chỉnh tiền mặt: ${delta > 0 ? 'Tăng' : 'Giảm'}`,
-        owner: getOwnerFilter(userId || 'gd', false),
-        date: new Date().toISOString().split('T')[0]
-      }]);
+      await supabase.rpc('log_transaction', {
+        p_amount: Math.abs(delta),
+        p_type: 'ADJUSTMENT',
+        p_category_id: null,
+        p_note: `điều chỉnh tiền mặt: ${delta > 0 ? 'Tăng' : 'Giảm'}`,
+        p_owner: getOwnerFilter(userId || 'gd', false),
+        p_date: new Date().toISOString().split('T')[0]
+      });
     }
 
+    revalidatePath('/'); // Purge Cache
     return { success: true, data: null };
   } catch (error) {
     return handleActionError('updateCashAmount', error);
@@ -251,16 +251,17 @@ export async function updateCashAmount(amount: number, userId?: string): Promise
 
 export async function adjustCashAmount(delta: number): Promise<ActionResult> {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     
     // get current 
-    const { data: existing } = await supabase
+    const { data: existingArray, error: fetchErr } = await supabase
       .from('assets')
       .select('id, current_value')
-      .eq('type', 'FINANCE')
-      .eq('name', 'Tiền mặt')
-      .limit(1)
-      .single();
+      .eq('is_system_cash_account', true)
+      .limit(1);
+
+    if (fetchErr) throw fetchErr;
+    const existing = existingArray && existingArray.length > 0 ? existingArray[0] : null;
 
     if (existing) {
       const newAmount = Number(existing.current_value || 0) + delta;
@@ -275,6 +276,7 @@ export async function adjustCashAmount(delta: number): Promise<ActionResult> {
         .select();
 
       if (error) throw error;
+      revalidatePath('/'); // Purge Cache
       return { success: true, data };
     } else {
       // If it doesn't exist, create it with delta as initial amount
@@ -287,7 +289,8 @@ export async function adjustCashAmount(delta: number): Promise<ActionResult> {
         current_price: newAmount,
         purchase_price: newAmount,
         current_value: newAmount,
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        is_system_cash_account: true
       };
 
       const { data, error } = await supabase

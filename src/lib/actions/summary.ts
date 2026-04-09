@@ -25,7 +25,7 @@ export async function getFinancialSummary(userId: string) {
     const owners = getOwnerFilter(userId, true) as string[];
 
     const [assetsResult, debtsResult, settingsResult, rpcResult] = await Promise.all([
-      supabase.from('assets').select('current_value, type, name').eq('status', 'ACTIVE'),
+      supabase.from('assets').select('current_value, type, name, is_system_cash_account').eq('status', 'ACTIVE'),
       supabase.from('debts').select('remaining_principal'),
       supabase.from('app_settings').select('target_income, target_spending').eq('user_id', 'family').single(),
       supabase.rpc('get_transaction_summary', { 
@@ -49,9 +49,9 @@ export async function getFinancialSummary(userId: string) {
     const { data: settings } = settingsResult;
     const stats: any = rpcResult.data && rpcResult.data.length > 0 ? rpcResult.data[0] : null;
 
-    const totalAssets = assets?.reduce((sum: number, a: PartialAsset) => sum + Number(a.current_value), 0) || 0;
-    const totalCash = assets?.filter((a: PartialAsset) => a.name === 'Tiền mặt').reduce((sum: number, a: PartialAsset) => sum + Number(a.current_value), 0) || 0;
-    const totalDebts = debts?.reduce((sum: number, d: PartialDebt) => sum + Number(d.remaining_principal), 0) || 0;
+    const totalAssets = assets?.reduce((sum: number, a: any) => sum + Number(a.current_value), 0) || 0;
+    const totalCash = assets?.filter((a: any) => a.is_system_cash_account === true).reduce((sum: number, a: any) => sum + Number(a.current_value), 0) || 0;
+    const totalDebts = debts?.reduce((sum: number, d: PartialDebt) => sum + Number(d.remaining_principal || 0), 0) || 0;
     
     const monthlyIncome = Number(stats?.monthly_income || 0);
     const monthlySpending = Number(stats?.monthly_spending || 0);

@@ -70,31 +70,18 @@ export async function exportDatabase(): Promise<string> {
 
 export async function importDatabase(jsonData: string): Promise<ActionResult> {
   try {
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-    const supabaseAdmin = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
     const backup = JSON.parse(jsonData);
     const { assets, debts, transactions, categories } = backup.data;
 
-    // Tiến trình Import: Xóa sạch dữ liệu cũ theo thứ tự ràng buộc khóa ngoại
-    // 1. Transactions (vì nó link tới assets, debts, categories)
-    await supabaseAdmin.from('transactions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    
-    // 2. Assets & Debts
-    await supabaseAdmin.from('assets').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabaseAdmin.from('debts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    
-    // 3. Categories
-    await supabaseAdmin.from('categories').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    const supabase = await createClient();
+    const { error: importError } = await supabase.rpc('import_database', {
+      p_categories: categories || [],
+      p_assets: assets || [],
+      p_debts: debts || [],
+      p_transactions: transactions || []
+    });
 
-    // Chèn lại dữ liệu mới
-    if (categories?.length > 0) await supabaseAdmin.from('categories').insert(categories);
-    if (assets?.length > 0) await supabaseAdmin.from('assets').insert(assets);
-    if (debts?.length > 0) await supabaseAdmin.from('debts').insert(debts);
-    if (transactions?.length > 0) await supabaseAdmin.from('transactions').insert(transactions);
+    if (importError) throw importError;
 
     revalidatePath('/');
     return { success: true, data: null };

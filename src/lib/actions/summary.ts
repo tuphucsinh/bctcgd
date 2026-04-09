@@ -21,17 +21,21 @@ export async function getFinancialSummary(userId: string) {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
+    const startDateStr = startOfMonth.toISOString().split('T')[0];
+    const owners = getOwnerFilter(userId, true) as string[];
 
-    const [assetsResult, debtsResult, transactionsResult, settingsResult] = await Promise.all([
+    const [assetsResult, debtsResult, settingsResult, rpcResult] = await Promise.all([
       supabase.from('assets').select('current_value, type, name').eq('status', 'ACTIVE'),
       supabase.from('debts').select('remaining_principal'),
-      supabase.from('transactions').select('amount, type, categories(is_passive)').gte('date', startOfMonth.toISOString().split('T')[0]).in('owner', getOwnerFilter(userId, true) as string[]),
-      supabase.from('app_settings').select('target_income, target_spending').eq('user_id', 'family').single()
+      supabase.from('app_settings').select('target_income, target_spending').eq('user_id', 'family').single(),
+      supabase.rpc('get_transaction_summary', { 
+        p_owners: owners, 
+        p_start_date: startDateStr 
+      })
     ]);
 
-    if (assetsResult.error || debtsResult.error || transactionsResult.error) {
-      const err = assetsResult.error || debtsResult.error || transactionsResult.error;
-      console.error('[DATABASE_ERROR] getFinancialSummary:', err);
+    if (assetsResult.error || debtsResult.error || rpcResult.error) {
+      console.error('[DATABASE_ERROR] getFinancialSummary:', rpcResult.error || assetsResult.error || debtsResult.error);
       return {
         totalAssets: 0, totalCash: 0, totalDebts: 0, netWorth: 0,
         monthlyIncome: 0, monthlySpending: 0, cashFlow: 0,
@@ -42,28 +46,16 @@ export async function getFinancialSummary(userId: string) {
 
     const { data: assets } = assetsResult;
     const { data: debts } = debtsResult;
-    const { data: transactions } = transactionsResult;
     const { data: settings } = settingsResult;
+    const stats: any = rpcResult.data && rpcResult.data.length > 0 ? rpcResult.data[0] : null;
 
     const totalAssets = assets?.reduce((sum: number, a: PartialAsset) => sum + Number(a.current_value), 0) || 0;
     const totalCash = assets?.filter((a: PartialAsset) => a.name === 'Tiền mặt').reduce((sum: number, a: PartialAsset) => sum + Number(a.current_value), 0) || 0;
     const totalDebts = debts?.reduce((sum: number, d: PartialDebt) => sum + Number(d.remaining_principal), 0) || 0;
     
-    let monthlyIncome = 0;
-    let monthlySpending = 0;
-    let passiveIncome = 0;
-
-    transactions?.forEach((t: { amount: number | string; type: string; categories?: { is_passive?: boolean } | { is_passive?: boolean }[] | null }) => {
-      const amount = Number(t.amount);
-      if (t.type === 'INCOME') {
-        monthlyIncome += amount;
-        const isPassive = Array.isArray(t.categories) ? t.categories[0]?.is_passive : t.categories?.is_passive;
-        if (isPassive) {
-          passiveIncome += amount;
-        }
-      }
-      else if (t.type === 'EXPENSE') monthlySpending += amount;
-    });
+    const monthlyIncome = Number(stats?.monthly_income || 0);
+    const monthlySpending = Number(stats?.monthly_spending || 0);
+    const passiveIncome = Number(stats?.passive_income || 0);
 
     return {
       totalAssets,
@@ -92,35 +84,28 @@ export async function getFinancialSummary(userId: string) {
 export async function getMonthlyTrend(userId: string) {
   const supabase = await createClient();
   try {
-  
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
+    const startDateStr = startOfMonth.toISOString().split('T')[0];
+    const owners = getOwnerFilter(userId, true) as string[];
   
-    let query = supabase
-      .from('transactions')
-      .select('amount, type, date')
-      .gte('date', startOfMonth.toISOString().split('T')[0])
-      .order('date', { ascending: true });
-  
-    query = query.in('owner', getOwnerFilter(userId, true) as string[]);
-  
-    const { data: transactions, error } = await query;
+    const { data, error } = await supabase.rpc('get_daily_trend', {
+      p_owners: owners,
+      p_start_date: startDateStr
+    });
   
     if (error) throw error;
   
-    const dailyData: Record<string, { date: string, income: number, expense: number }> = {};
-    
-    transactions?.forEach(t => {
-      const d = new Date(t.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-      if (!dailyData[d]) {
-        dailyData[d] = { date: d, income: 0, expense: 0 };
-      }
-      if (t.type === 'INCOME') dailyData[d].income += Number(t.amount);
-      if (t.type === 'EXPENSE') dailyData[d].expense += Number(t.amount);
-    });
+    // data format: [{trend_date: '2026-04-01', income: 100, expense: 50}, ...]
+    // Cần format lại theo ngày/tháng để hiển thị
+    const formattedData = (data || []).map((row: any) => ({
+      date: new Date(row.trend_date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+      income: Number(row.income || 0),
+      expense: Number(row.expense || 0)
+    }));
   
-    return Object.values(dailyData);
+    return formattedData;
   } catch (error) {
     console.error('[SERVER_ERROR] getMonthlyTrend:', error);
     return [];

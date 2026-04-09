@@ -140,24 +140,20 @@ export function DashboardClient({ initialSummary, initialTrend }: DashboardClien
         }}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12 mt-4">
-        <div className="space-y-8 lg:col-span-1">
-          <ComparisonBars 
-            income={income} 
-            expense={expense} 
-          />
+      <div className="flex flex-col gap-8 mb-12 mt-4">
+        <ComparisonBars 
+          income={income} 
+          expense={expense} 
+        />
 
-          <MonthlyTrendChart 
-            trendData={trendData.length > 0 ? trendData : (isMounted ? MOCK_TREND_DATA : [])}
-            loading={loading}
-            isMounted={isMounted}
-            cashFlow={data?.cashFlow ?? 0}
-            incomePercent={incomePercent}
-            expensePercent={expensePercent}
-          />
-        </div>
-        <div className="space-y-8 lg:col-span-1">
-        </div>
+        <MonthlyTrendChart 
+          trendData={trendData.length > 0 ? trendData : (isMounted ? MOCK_TREND_DATA : [])}
+          loading={loading}
+          isMounted={isMounted}
+          cashFlow={data?.cashFlow ?? 0}
+          incomePercent={incomePercent}
+          expensePercent={expensePercent}
+        />
       </div>
     </main>
   );

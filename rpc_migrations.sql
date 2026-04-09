@@ -15,18 +15,18 @@ BEGIN
   -- Tính tổng thu nhập
   SELECT COALESCE(SUM(amount), 0) INTO v_income
   FROM transactions
-  WHERE type = 'INCOME' AND owner = ANY(p_owners) AND date >= p_start_date;
+  WHERE type::text = 'INCOME' AND owner::text = ANY(p_owners) AND date >= p_start_date;
 
   -- Tính tổng chi tiêu
   SELECT COALESCE(SUM(amount), 0) INTO v_spending
   FROM transactions
-  WHERE type = 'EXPENSE' AND owner = ANY(p_owners) AND date >= p_start_date;
+  WHERE type::text = 'EXPENSE' AND owner::text = ANY(p_owners) AND date >= p_start_date;
 
   -- Tính tổng thu nhập thụ động
   SELECT COALESCE(SUM(t.amount), 0) INTO v_passive
   FROM transactions t
   LEFT JOIN categories c ON t.category_id = c.id
-  WHERE t.type = 'INCOME' AND t.owner = ANY(p_owners) AND t.date >= p_start_date AND c.is_passive = true;
+  WHERE t.type::text = 'INCOME' AND t.owner::text = ANY(p_owners) AND t.date >= p_start_date AND c.is_passive = true;
 
   RETURN QUERY SELECT v_income, v_spending, v_passive;
 END;
@@ -41,10 +41,10 @@ SECURITY DEFINER
 AS $$
   SELECT 
     date as trend_date,
-    COALESCE(SUM(CASE WHEN type = 'INCOME' THEN amount ELSE 0 END), 0) as income,
-    COALESCE(SUM(CASE WHEN type = 'EXPENSE' THEN amount ELSE 0 END), 0) as expense
+    COALESCE(SUM(CASE WHEN type::text = 'INCOME' THEN amount ELSE 0 END), 0) as income,
+    COALESCE(SUM(CASE WHEN type::text = 'EXPENSE' THEN amount ELSE 0 END), 0) as expense
   FROM transactions
-  WHERE owner = ANY(p_owners) AND date >= p_start_date
+  WHERE owner::text = ANY(p_owners) AND date >= p_start_date
   GROUP BY date
   ORDER BY date ASC;
 $$;

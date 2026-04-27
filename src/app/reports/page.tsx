@@ -1,21 +1,49 @@
-import { BarChart3 } from 'lucide-react';
+import { ReportsClient } from './reports-client';
+import { getMonthlyCashflow, getExpensesByCategory, getReportSummary } from '@/lib/actions/reports';
 
-export default function ReportsPage() {
+export const metadata = {
+  title: 'Báo cáo | BCTCGD',
+  description: 'Thống kê và báo cáo tài chính cá nhân',
+};
+
+// Hàm lấy ngày đầu tháng hiện tại (VN Time)
+function getVNStartOfMonth(): string {
+  const now = new Date();
+  const vnDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+  vnDate.setDate(1);
+  const year = vnDate.getFullYear();
+  const month = String(vnDate.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}-01`;
+}
+
+// Hàm lấy ngày hiện tại (VN Time)
+function getVNToday(): string {
+  const now = new Date();
+  const vnDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+  const year = vnDate.getFullYear();
+  const month = String(vnDate.getMonth() + 1).padStart(2, '0');
+  const day = String(vnDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export default async function ReportsPage() {
+  const startDate = getVNStartOfMonth();
+  const endDate = getVNToday();
+
+  // Fetch all report data in parallel
+  const [summary, monthlyCashflow, expensesByCategory] = await Promise.all([
+    getReportSummary(),
+    getMonthlyCashflow(6),
+    getExpensesByCategory(startDate, endDate)
+  ]);
+
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center p-8">
-      <div className="text-center space-y-4 max-w-sm">
-        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-          <BarChart3 className="w-8 h-8 text-primary" />
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight">Báo cáo</h1>
-        <p className="text-sm text-white/40 leading-relaxed">
-          Tính năng đang được phát triển. Sẽ ra mắt trong phiên bản tới.
-        </p>
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-xs text-primary font-bold uppercase tracking-widest">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-          Coming Soon
-        </div>
-      </div>
+    <div className="min-h-screen bg-black text-white p-4 md:p-8">
+      <ReportsClient 
+        summary={summary}
+        monthlyCashflow={monthlyCashflow}
+        expensesByCategory={expensesByCategory}
+      />
     </div>
   );
 }

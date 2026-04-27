@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from '@/utils/supabase/server';
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { handleActionError, ActionResult, getOwnerFilter } from './helpers';
 import { adjustCashAmount } from './assets';
@@ -28,8 +29,27 @@ export async function addTransaction(input: TransactionInput): Promise<ActionRes
       throw new Error(validated.error.issues[0].message);
     }
 
-    const owner = getOwnerFilter(input.user_id, false);
+    const owner = getOwnerFilter(input.user_id, false) as string;
     const supabase = await createClient();
+
+    // P0-1: Thử dùng RPC atomic (insert + adjust cash trong 1 transaction)
+    const { data: rpcData, error: rpcError } = await supabase.rpc('rpc_add_transaction', {
+      p_amount: input.amount,
+      p_type: input.type,
+      p_owner: owner,
+      p_note: input.note,
+      p_category_id: input.category_id || null,
+      p_date: new Date().toISOString().split('T')[0]
+    });
+
+    if (!rpcError) {
+      // RPC thành công — atomic done
+      revalidatePath('/');
+      return { success: true, data: rpcData };
+    }
+
+    // Fallback: RPC chưa apply vào DB, dùng sequential (sẽ xóa sau khi apply migration)
+    console.warn('[FALLBACK] rpc_add_transaction not found, using sequential ops:', rpcError.message);
 
     const { data, error } = await supabase
       .from('transactions')
@@ -51,11 +71,13 @@ export async function addTransaction(input: TransactionInput): Promise<ActionRes
       await adjustCashAmount(-input.amount);
     }
 
+    revalidatePath('/');
     return { success: true, data };
   } catch (error) {
     return handleActionError('addTransaction', error);
   }
 }
+
 
 export async function getRecentTransactions(userId: string, limit = 5) {
   try {

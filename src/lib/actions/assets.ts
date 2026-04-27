@@ -37,7 +37,7 @@ export async function getAssets(page: number = 1, limit: number = 50) {
     return data;
   } catch (error) {
     console.error('[DATABASE_ERROR] getAssets:', error);
-    return []; // Giữ nguyên hành vi return array của UI cũ
+    return [];
   }
 }
 
@@ -72,7 +72,8 @@ export async function createAsset(input: AssetInput): Promise<ActionResult> {
       .select();
 
     if (error) throw error;
-    revalidatePath('/'); // Purge Cache (Pending Refactor #5)
+    revalidatePath('/');
+    revalidatePath('/assets');
     return { success: true, data };
   } catch (error) {
     return handleActionError('createAsset', error);
@@ -95,6 +96,8 @@ export async function updateAsset(id: string, input: Partial<AssetInput>): Promi
       .select();
 
     if (error) throw error;
+    revalidatePath('/');
+    revalidatePath('/assets');
     return { success: true, data };
   } catch (error) {
     return handleActionError('updateAsset', error);
@@ -109,19 +112,23 @@ export async function sellAsset(
   userId?: string
 ): Promise<ActionResult> {
   try {
+    // --- P0-4: Validation ---
+    if (sellQuantity <= 0) {
+      throw new Error("Số lượng bán phải lớn hơn 0");
+    }
+    if (sellQuantity > currentAsset.quantity) {
+      throw new Error(`Số lượng bán (${sellQuantity}) không được vượt quá số lượng hiện có (${currentAsset.quantity})`);
+    }
+    if (sellPrice < 0) {
+      throw new Error("Giá bán không được âm");
+    }
+
     const remainingQty = currentAsset.quantity - sellQuantity;
     const isSellingAll = remainingQty <= 0;
 
-    let updatePayload: Record<string, unknown> = {};
-
-    if (isSellingAll) {
-      updatePayload = { status: 'SOLD' };
-    } else {
-      updatePayload = { 
-        quantity: remainingQty,
-        current_value: remainingQty * currentAsset.current_price
-      };
-    }
+    const updatePayload: Record<string, unknown> = isSellingAll
+      ? { status: 'SOLD' }
+      : { quantity: remainingQty, current_value: remainingQty * currentAsset.current_price };
 
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -139,43 +146,53 @@ export async function sellAsset(
     else if (currentAsset.type === 'GOLD') catName = 'Vàng';
     else if (currentAsset.type === 'FINANCE') catName = 'Tài chính';
 
-    const { data: catData } = await supabase.from('categories').select('id').eq('name', catName).eq('type', 'INCOME').single();
-    const category_id = catData?.id || null;
+    // Owner từ userId được truyền vào, không hardcode
+    const owner = getOwnerFilter(userId || 'gd', false) as string;
 
-    // Determine owner from local context if possible, default 'HIEU' (via helpers)
-    const owner = getOwnerFilter(userId || 'gd', false); // The schema has a constraint check_owner_no_joint
-
-    // Calculate profit/loss
     const purchasePrice = currentAsset.purchase_price || 0;
     const profitOrLoss = sellQuantity * (sellPrice - purchasePrice);
+    const totalCashAdded = sellQuantity * sellPrice;
 
-    // Insert transaction using RPC to bypass RLS safely
+    // --- P0-1: Atomic — dùng rpc_add_transaction thay vì log_transaction + adjustCashAmount riêng ---
     if (profitOrLoss !== 0) {
-      const { error: insertError } = await supabase.rpc('log_transaction', {
-        p_amount: profitOrLoss,
-        p_type: 'INCOME',
-        p_category_id: category_id,
+      const { data: catData } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('name', catName)
+        // --- P1-2: Fix type — lãi -> INCOME, lỗ -> EXPENSE ---
+        .eq('type', profitOrLoss >= 0 ? 'INCOME' : 'EXPENSE')
+        .single();
+
+      const { error: rpcErr } = await supabase.rpc('log_transaction', {
+        p_amount: Math.abs(profitOrLoss),
+        // P1-2: lỗ ghi EXPENSE thay vì INCOME âm
+        p_type: profitOrLoss >= 0 ? 'INCOME' : 'EXPENSE',
+        p_category_id: catData?.id || null,
         p_note: `${profitOrLoss > 0 ? 'Lãi' : 'Lỗ'} bán tài sản: ${currentAsset.name || 'Tài sản'} (${sellQuantity} đơn vị) | Giá bán: ${sellPrice}`,
         p_owner: owner,
         p_date: new Date().toISOString().split('T')[0]
       });
 
-      if (insertError) {
-        console.error('SELL_ASSET_INSERT_ERROR:', insertError);
-        throw insertError;
-      }
+      if (rpcErr) throw rpcErr;
     }
 
-    // Add total cash from the sale
-    const totalCashAdded = sellQuantity * sellPrice;
+    // Adjust cash qua RPC atomic (thử rpc_adjust_cash, fallback về adjustCashAmount)
     if (totalCashAdded > 0) {
-      const resp = await adjustCashAmount(totalCashAdded); 
-      if (!resp.success) {
-        console.error('FAILED TO UPDATE CASH AMOUNT ALTHOUGH ASSET WAS SOLD', resp.error);
+      const { error: cashErr } = await supabase.rpc('rpc_adjust_cash', {
+        p_delta: totalCashAdded
+      });
+
+      if (cashErr) {
+        // Fallback: rpc chưa được tạo, dùng hàm cũ
+        const resp = await adjustCashAmount(totalCashAdded);
+        if (!resp.success) {
+          console.error('FAILED TO UPDATE CASH AMOUNT ALTHOUGH ASSET WAS SOLD', resp.error);
+        }
       }
     }
 
-    revalidatePath('/'); // Purge Cache
+    revalidatePath('/');
+    revalidatePath('/assets');
     return { success: true, data };
   } catch (error) {
     return handleActionError('sellAsset', error);
@@ -242,7 +259,7 @@ export async function updateCashAmount(amount: number, userId?: string): Promise
       });
     }
 
-    revalidatePath('/'); // Purge Cache
+    revalidatePath('/');
     return { success: true, data: null };
   } catch (error) {
     return handleActionError('updateCashAmount', error);
@@ -253,7 +270,6 @@ export async function adjustCashAmount(delta: number): Promise<ActionResult> {
   try {
     const supabase = createAdminClient();
     
-    // get current 
     const { data: existingArray, error: fetchErr } = await supabase
       .from('assets')
       .select('id, current_value')
@@ -276,10 +292,9 @@ export async function adjustCashAmount(delta: number): Promise<ActionResult> {
         .select();
 
       if (error) throw error;
-      revalidatePath('/'); // Purge Cache
+      revalidatePath('/');
       return { success: true, data };
     } else {
-      // If it doesn't exist, create it with delta as initial amount
       const newAmount = delta;
       const toInsert = {
         name: 'Tiền mặt',
@@ -305,4 +320,3 @@ export async function adjustCashAmount(delta: number): Promise<ActionResult> {
     return handleActionError('adjustCashAmount', error);
   }
 }
-

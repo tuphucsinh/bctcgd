@@ -3,6 +3,17 @@
 import { createClient } from '@/utils/supabase/server';
 import { getOwnerFilter } from './helpers';
 
+// P2-7: Tính ngày đầu tháng theo giờ Việt Nam (UTC+7)
+// Vercel server chạy UTC, nêu dùng new Date() sẽ sai 7 tiếng đầu tháng
+function getVNStartOfMonth(): string {
+  const now = new Date();
+  const vnDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+  vnDate.setDate(1);
+  const year = vnDate.getFullYear();
+  const month = String(vnDate.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}-01`;
+}
+
 // Helper local types (không xuất ra ngoài)
 interface PartialAsset {
   current_value: number;
@@ -18,10 +29,7 @@ interface PartialDebt {
 export async function getFinancialSummary(userId: string) {
   const supabase = await createClient();
   try {
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-    const startDateStr = startOfMonth.toISOString().split('T')[0];
+    const startDateStr = getVNStartOfMonth(); // P2-7: giờ Việt Nam
     const owners = getOwnerFilter(userId, true) as string[];
 
     const [assetsResult, debtsResult, settingsResult, rpcResult] = await Promise.all([
@@ -84,10 +92,7 @@ export async function getFinancialSummary(userId: string) {
 export async function getMonthlyTrend(userId: string) {
   const supabase = await createClient();
   try {
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-    const startDateStr = startOfMonth.toISOString().split('T')[0];
+    const startDateStr = getVNStartOfMonth(); // P2-7: giờ Việt Nam
     const owners = getOwnerFilter(userId, true) as string[];
   
     const { data, error } = await supabase.rpc('get_daily_trend', {

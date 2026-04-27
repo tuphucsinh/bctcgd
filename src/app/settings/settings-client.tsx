@@ -66,9 +66,9 @@ export default function SettingsClient({ initialSettings }: { initialSettings: A
     }
 
     setIsLoading(true);
-    try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
         const content = event.target?.result as string;
         const result = await importDatabase(content);
         if (result.success) {
@@ -77,13 +77,18 @@ export default function SettingsClient({ initialSettings }: { initialSettings: A
         } else {
           toast.error('Lỗi khi nhập dữ liệu. Vui lòng kiểm tra định dạng file.');
         }
-      };
-      reader.readAsText(file);
-    } catch (e) {
-      toast.error('Lỗi khi đọc file.');
-    } finally {
+      } catch (e) {
+        toast.error('Lỗi khi đọc file.');
+      } finally {
+        setIsLoading(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.onerror = () => {
+      toast.error('Không thể đọc file.');
       setIsLoading(false);
-    }
+    };
+    reader.readAsText(file);
   };
 
   return (

@@ -3,3 +3,4 @@ export * from './debts';
 export * from './transactions';
 export * from './summary';
 export * from './helpers';
+export * from './settings';

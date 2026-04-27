@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -22,6 +23,7 @@ export function CashUpdateModal({
   currentCash: number;
   userId?: string;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   
@@ -29,6 +31,13 @@ export function CashUpdateModal({
   const [displayAmount, setDisplayAmount] = useState(
     currentCash ? currentCash.toLocaleString('vi-VN') : ""
   );
+
+  // P1-4: Sync giá trị mới nhất mỗi lần modal mở
+  useEffect(() => {
+    if (open) {
+      setDisplayAmount(currentCash ? currentCash.toLocaleString('vi-VN') : "");
+    }
+  }, [open, currentCash]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Chỉ giữ lại số
@@ -68,7 +77,7 @@ export function CashUpdateModal({
       );
       
       setOpen(false);
-      window.location.reload();
+      router.refresh(); // P2-1: Không full reload, giữ client state
     } catch (err) {
       console.error(err);
       toast.error("Lỗi khi cập nhật Tiền mặt.");
@@ -130,7 +139,7 @@ export function CashUpdateModal({
             >
               {loading ? (
                 <span className="animate-pulse flex flex-row items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> Mới
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> Đang lưu...
                 </span>
               ) : (
                 <>

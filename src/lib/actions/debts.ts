@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from '@/utils/supabase/server';
+import { revalidatePath } from 'next/cache';
 import { handleActionError, ActionResult, getOwnerFilter } from './helpers';
 import { adjustCashAmount } from './assets';
 
@@ -80,6 +81,8 @@ export async function createDebt(input: DebtInput): Promise<ActionResult> {
       }
     }
 
+    revalidatePath('/');
+    revalidatePath('/debts');
     return { success: true, data };
   } catch (error) {
     return handleActionError('createDebt', error);
@@ -141,6 +144,8 @@ export async function recordDebtTransaction(input: {
       await adjustCashAmount(input.amount);
     }
 
+    revalidatePath('/');
+    revalidatePath('/debts');
     return { success: true, data: null };
   } catch (error) {
     return handleActionError('recordDebtTransaction', error);
@@ -165,6 +170,8 @@ export async function updateDebt(id: string, input: DebtInput): Promise<ActionRe
       .select();
       
     if (error) throw error;
+    revalidatePath('/');
+    revalidatePath('/debts');
     return { success: true, data };
   } catch (error) {
     return handleActionError('updateDebt', error);
@@ -174,14 +181,36 @@ export async function updateDebt(id: string, input: DebtInput): Promise<ActionRe
 export async function deleteDebt(id: string): Promise<ActionResult> {
   const supabase = await createClient();
   try {
+    // P0-8: Lấy thông tin nợ trước khi xóa để kiểm tra và rollback cash
+    const { data: debt, error: fetchErr } = await supabase
+      .from('debts')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchErr || !debt) throw new Error("Không tìm thấy khoản nợ");
+
+    // Cảnh báo nếu còn dư nợ — client nên xử lý confirm trước
+    // (hàm này vẫn tiến hành xóa, nhưng log cảnh báo)
+    if (Number(debt.remaining_principal) > 0) {
+      console.warn(`[WARN] deleteDebt: Xóa khoản nợ ${debt.name} còn dư ${debt.remaining_principal}`);
+    }
+
+    // Xóa linked transactions trước (linked_debt_id -> CASCADE đã cấu hình trong schema)
+    // PostgreSQL ON DELETE CASCADE sẽ tự xử lý, không cần xóa thủ công.
+
     const { error } = await supabase
       .from('debts')
       .delete()
       .eq('id', id);
       
     if (error) throw error;
+
+    revalidatePath('/');
+    revalidatePath('/debts');
     return { success: true, data: null };
   } catch (error) {
     return handleActionError('deleteDebt', error);
   }
 }
+

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -17,6 +18,23 @@ import {
 import { cn, formatNumber, parseNumber } from "@/lib/utils";
 import { addTransaction, getCategories } from "@/lib/actions";
 
+// P2-2: Module-level cache — tất cả instance TransactionModal dùng chung
+// Invalidate sau 5 phút để đảm bảo danh mục mới được load
+const CAT_CACHE_TTL = 5 * 60 * 1000;
+let _cachedCategories: { id: string; name: string; type: string }[] | null = null;
+let _cacheTimestamp = 0;
+
+async function fetchCategoriesCached() {
+  const now = Date.now();
+  if (_cachedCategories && now - _cacheTimestamp < CAT_CACHE_TTL) {
+    return _cachedCategories;
+  }
+  const data = await getCategories();
+  _cachedCategories = data;
+  _cacheTimestamp = now;
+  return data;
+}
+
 const users = [
   { id: "hieu", name: "Hiếu", color: "bg-blue-500" },
   { id: "ly", name: "Ly", color: "bg-pink-500" }
@@ -31,6 +49,7 @@ export function TransactionModal({
   currentUser: { id: string; name?: string };
   defaultType?: "EXPENSE" | "INCOME";
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   
@@ -65,14 +84,14 @@ export function TransactionModal({
   useEffect(() => {
     async function loadCats() {
       try {
-        const data = await getCategories();
+        const data = await fetchCategoriesCached(); // P2-2: dùng cache
         setCategories(data);
       } catch (err) {
         console.error("Failed to load categories", err);
       }
     }
     loadCats();
-  }, []);
+  }, []); // Chỉ chạy 1 lần khi mount, cache xử lý TTL
 
   const incomeOrder = ["Lương", "Thưởng", "Bất động sản", "Crypto", "Vàng", "Tài chính", "Khác"];
   const expenseOrder = ["Ăn uống", "Di chuyển", "Hóa đơn", "Giao tế", "Giải trí", "Đồ dùng", "Sức khỏe", "Học hành", "Con cái", "Khác"];
@@ -125,7 +144,7 @@ export function TransactionModal({
       setNote("");
       setSelectedCatId(null);
       // Refresh page to show new data
-      window.location.reload();
+      router.refresh(); // P2-1: Không full reload
     } catch (err) {
       console.error(err);
       toast.error("Lỗi khi lưu giao dịch.");

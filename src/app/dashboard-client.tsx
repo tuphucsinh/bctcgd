@@ -42,22 +42,25 @@ export function DashboardClient({ initialSummary, initialTrend }: DashboardClien
 
   useEffect(() => {
     setIsMounted(true);
-    // Refresh data on mount to ensure it's fresh, but we already have SSR data
+    // P1-1: Fetch data theo user đang chọn
     async function refreshData() {
+      setLoading(true);
       try {
         const [summary, , trend] = await Promise.all([
-          getFinancialSummary('all'),
-          getRecentTransactions('all', 5),
-          getMonthlyTrend('all')
+          getFinancialSummary(userId),
+          getRecentTransactions(userId, 5),
+          getMonthlyTrend(userId)
         ]);
         setData(summary);
         setTrendData(trend || []);
       } catch (err) {
         console.error("Error refreshing dashboard data:", err);
+      } finally {
+        setLoading(false);
       }
     }
     refreshData();
-  }, []);
+  }, [userId]); // Re-fetch mỗi khi user thay đổi
 
   const handleUserChange = (user: typeof users[0]) => {
     setCurrentUser(user);

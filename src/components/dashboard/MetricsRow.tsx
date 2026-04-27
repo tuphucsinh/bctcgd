@@ -50,15 +50,15 @@ export function MetricsRow({ currentUser, loading, cash, income, expense, goals 
             </div>
           </div>
           <div 
-            className="absolute top-1.5 right-1.5 z-30"
+            className="absolute top-2.5 right-2.5 z-30"
             onClick={(e) => e.stopPropagation()}
           >
             <CashUpdateModal currentCash={cash} userId={currentUser?.id}>
               <MagneticButton>
                 <button 
-                  className="h-12 w-12 flex items-center justify-center rounded-2xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all active:scale-95 shadow-sm border border-blue-500/20"
+                  className="h-10 w-10 flex items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all active:scale-95 shadow-sm border border-blue-500/20"
                 >
-                  <Plus className="h-6 w-6" />
+                  <Plus className="h-5 w-5" />
                 </button>
               </MagneticButton>
             </CashUpdateModal>
@@ -100,15 +100,15 @@ export function MetricsRow({ currentUser, loading, cash, income, expense, goals 
             </div>
           </div>
           <div 
-            className="absolute top-1.5 right-1.5 z-30"
+            className="absolute top-2.5 right-2.5 z-30"
             onClick={(e) => e.stopPropagation()}
           >
             <TransactionModal currentUser={currentUser} defaultType="INCOME">
               <MagneticButton>
                 <button 
-                  className="h-12 w-12 flex items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all active:scale-95 shadow-sm border border-emerald-500/20"
+                  className="h-10 w-10 flex items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all active:scale-95 shadow-sm border border-emerald-500/20"
                 >
-                  <Plus className="h-6 w-6" />
+                  <Plus className="h-5 w-5" />
                 </button>
               </MagneticButton>
             </TransactionModal>
@@ -161,15 +161,15 @@ export function MetricsRow({ currentUser, loading, cash, income, expense, goals 
             </div>
           </div>
           <div 
-            className="absolute top-1.5 right-1.5 z-30"
+            className="absolute top-2.5 right-2.5 z-30"
             onClick={(e) => e.stopPropagation()}
           >
             <TransactionModal currentUser={currentUser} defaultType="EXPENSE">
               <MagneticButton>
                 <button 
-                  className="h-12 w-12 flex items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white transition-all active:scale-95 shadow-sm border border-orange-500/20"
+                  className="h-10 w-10 flex items-center justify-center rounded-xl bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white transition-all active:scale-95 shadow-sm border border-orange-500/20"
                 >
-                  <Plus className="h-6 w-6" />
+                  <Plus className="h-5 w-5" />
                 </button>
               </MagneticButton>
             </TransactionModal>
